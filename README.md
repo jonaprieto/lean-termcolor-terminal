@@ -1,6 +1,6 @@
 # termcolor-terminal
 
-[![CI](https://github.com/jonaprieto/lean-termcolor-terminal/actions/workflows/ci.yml/badge.svg)](https://github.com/jonaprieto/lean-termcolor-terminal/actions/workflows/ci.yml)
+[![CI](https://github.com/jonaprieto/lean-termcolor-terminal/workflows/CI/badge.svg)](https://github.com/jonaprieto/lean-termcolor-terminal/actions/workflows/ci.yml)
 [![Lean 4](https://img.shields.io/badge/Lean%204-library-5f5f5f)](lean-toolchain)
 [![License](https://img.shields.io/badge/license-Apache--2.0-green)](LICENSE)
 
