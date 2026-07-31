@@ -46,6 +46,7 @@ jobs:
       - name: Build API docs
         run: |
           lake -R -Kenv=dev update
+          git config --global --unset-all "url.https://x-access-token:${TERMCOLOR_READ_TOKEN}@github.com/.insteadOf" || true
           lake -R -Kenv=dev build TermColorTerminal:docs
           touch .lake/build/doc/.nojekyll
       - uses: actions/upload-pages-artifact@v3
