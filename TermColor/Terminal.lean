@@ -4,7 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Jonathan Prieto-Cubides
 -/
 
-import TermColorTerminal.Basic
+import TermColor.Terminal.Basic
 
 /-!
 # termcolor-terminal

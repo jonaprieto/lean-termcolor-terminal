@@ -4,11 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Jonathan Prieto-Cubides
 -/
 
-import TerminalProperties.Basic
-import TerminalProperties.Examples
+import TermColor.Terminal.Properties.Basic
+import TermColor.Terminal.Properties.Examples
 
 /-!
-# TerminalProperties
+# TermColor.Terminal.Properties
 
 Machine-checked laws for pure terminal sequences and live-line state transitions.
 -/

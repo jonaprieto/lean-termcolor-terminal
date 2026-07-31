@@ -14,5 +14,5 @@ This library is executable formal coverage for `termcolor-terminal`'s pure bound
 Build it with:
 
 ```sh
-lake build TerminalProperties
+lake build TermColor.Terminal.Properties
 ```

@@ -5,8 +5,8 @@ Authors: Jonathan Prieto-Cubides
 -/
 
 import TermColor.Detect
-import TermColorLayout
-import TermColorWidgets
+import TermColor.Layout
+import TermColor.Widgets
 
 /-!
 # TermColor.Terminal.Basic: terminal control and IO

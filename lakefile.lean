@@ -10,22 +10,24 @@ meta if get_config? env = some "dev" then
     "https://github.com/leanprover/doc-gen4" @ "a41d5ebebfa77afe737fec8de8ad03fc8b08fdff"
 
 require «termcolor» from git
-  "https://github.com/jonaprieto/lean-termcolor.git" @ "cad33339fb9e64e251840b8ad4c1a2ba4306b598"
+  "https://github.com/jonaprieto/lean-termcolor.git" @ "117a3570c2f9dea3b3198998e260a3afa9270ea7"
 
 require «termcolor-layout» from git
   "https://github.com/jonaprieto/lean-termcolor-layout.git"
-  @ "6cb5303f5ab596e6d9e8801076469c0848ddefd3"
+  @ "7e838f6b0903963f2b7de66cf055d8bf89688682"
 
 require «termcolor-widgets» from git
   "https://github.com/jonaprieto/lean-termcolor-widgets.git"
-  @ "b99cd14911ca7316bdf8b152e975c3bd8013aa10"
+  @ "8ca0eef4ab10e831cbd752db866e6e94400af81d"
 
 @[default_target]
-lean_lib «TermColorTerminal» where
-  globs := #[.andSubmodules `TermColorTerminal]
+lean_lib «TermColor.Terminal» where
+  roots := #[`TermColor.Terminal]
+  globs := #[.andSubmodules `TermColor.Terminal]
 
-lean_lib «TerminalProperties» where
-  globs := #[.andSubmodules `TerminalProperties]
+lean_lib «TermColor.Terminal.Properties» where
+  roots := #[`TermColor.Terminal.Properties]
+  globs := #[.andSubmodules `TermColor.Terminal.Properties]
 
 lean_exe «demo» where
   root := `Demo

@@ -9,7 +9,7 @@ alongside stdout output, flushing, one-line redraws, multi-line regions, and wid
 progress and spinner objects.
 
 ```lean
-import TermColorTerminal
+import TermColor.Terminal
 
 open TermColor
 open TermColor.Terminal
@@ -33,11 +33,11 @@ while `termcolor-layout` supplies width-aware boxes, columns, and the default te
 Build and run the demo:
 
 ```sh
-lake build TermColorTerminal TerminalProperties demo
+lake build TermColor.Terminal TermColor.Terminal.Properties demo
 lake exe demo
 ```
 
-The separate `TerminalProperties` library machine-checks the pure sequence and live-object laws.
+The separate `TermColor.Terminal.Properties` library machine-checks the pure sequence and live-object laws.
 Raw keyboard mode and a full-screen retained buffer are intentionally outside this small live
 output layer.
 
