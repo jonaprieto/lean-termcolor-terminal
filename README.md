@@ -24,6 +24,10 @@ def main : IO Unit := do
 `terminalSize` first honors `COLUMNS` and `LINES`. If those are unavailable, it invokes `stty size`
 through `/dev/tty` on macOS/Linux and returns `none` when no terminal size is available.
 
+Cursor-control helpers are no-ops when stdout is redirected or `TERM` is `dumb`/`unknown`.
+Live objects use newline-separated snapshots in that mode, so pipes and CI logs do not receive
+cursor escape sequences. `stdoutSupportsControl` exposes the same policy to callers.
+
 `LiveLine` redraws one line, `LiveRegion` redraws a multi-line `Text` value at the current terminal
 width, and `LiveProgress`,
 `LiveSpinner`, `LiveIndeterminateProgress`, `LiveStatus`, and `LiveTable` connect

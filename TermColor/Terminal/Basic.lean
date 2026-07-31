@@ -11,9 +11,10 @@ import TermColor.Widgets
 /-!
 # TermColor.Terminal.Basic: terminal control and IO
 
-The sequence builders are pure values. The IO helpers write to stdout and flush explicitly. Size
-detection is best effort: it honors `COLUMNS`/`LINES`, then tries `stty size` through `/dev/tty` on
-macOS and Linux.
+The sequence builders are pure values. The IO helpers write to stdout and flush explicitly. Cursor
+controls are disabled for redirected output and `TERM=dumb`/`TERM=unknown`; live objects fall back
+to newline-separated snapshots in that mode. Size detection is best effort: it honors
+`COLUMNS`/`LINES`, then tries `stty size` through `/dev/tty` on macOS and Linux.
 -/
 
 namespace TermColor
@@ -63,6 +64,16 @@ def hideCursorSequence : String := csi ++ "?25l"
 /-- Show the terminal cursor. -/
 def showCursorSequence : String := csi ++ "?25h"
 
+/-- Whether a TTY and terminal declaration allow cursor-control sequences. -/
+def terminalControlAllowed (isTty : Bool) (term : Option String) : Bool :=
+  if !isTty then false else
+    match term with
+    | some "dumb" | some "unknown" => false
+    | _ => true
+
+private def terminalControlEnabled : IO Bool := do
+  pure (terminalControlAllowed (← (← IO.getStdout).isTty) (← IO.getEnv "TERM"))
+
 /-- Write text to stdout without flushing. -/
 def write (text : String) : IO Unit := IO.print text
 
@@ -74,6 +85,10 @@ private def writeFlush (text : String) : IO Unit := do
   write text
   flush
 
+private def writeControl (sequence : String) : IO Unit := do
+  if ← terminalControlEnabled then
+    writeFlush sequence
+
 /-- Render styled text using terminal detection and write it without a newline. -/
 def writeText (text : Text) (choice : ColorChoice := .auto) : IO Unit := do
   write (← TermColor.render text choice)
@@ -83,38 +98,41 @@ def writeTextLine (text : Text) (choice : ColorChoice := .auto) : IO Unit := do
   write (← TermColor.render (text ++ Text.plain "\n") choice)
 
 /-- Erase the current line and return to its first column. -/
-def clearLine : IO Unit := writeFlush clearLineSequence
+def clearLine : IO Unit := writeControl clearLineSequence
 
 /-- Clear the visible screen and flush stdout. -/
-def clearScreen : IO Unit := writeFlush clearScreenSequence
+def clearScreen : IO Unit := writeControl clearScreenSequence
 
 /-- Save the cursor position and flush stdout. -/
-def saveCursor : IO Unit := writeFlush saveCursorSequence
+def saveCursor : IO Unit := writeControl saveCursorSequence
 
 /-- Restore the cursor position and flush stdout. -/
-def restoreCursor : IO Unit := writeFlush restoreCursorSequence
+def restoreCursor : IO Unit := writeControl restoreCursorSequence
 
 /-- Enter the alternate screen buffer and flush stdout. -/
-def enterAlternateScreen : IO Unit := writeFlush enterAlternateScreenSequence
+def enterAlternateScreen : IO Unit := writeControl enterAlternateScreenSequence
 
 /-- Leave the alternate screen buffer and flush stdout. -/
-def exitAlternateScreen : IO Unit := writeFlush exitAlternateScreenSequence
+def exitAlternateScreen : IO Unit := writeControl exitAlternateScreenSequence
 
 /-- Move the cursor up and flush stdout. -/
-def cursorUp (count : Nat) : IO Unit := writeFlush (cursorUpSequence count)
+def cursorUp (count : Nat) : IO Unit := writeControl (cursorUpSequence count)
 
 /-- Move the cursor down and flush stdout. -/
-def cursorDown (count : Nat) : IO Unit := writeFlush (cursorDownSequence count)
+def cursorDown (count : Nat) : IO Unit := writeControl (cursorDownSequence count)
 
 /-- Hide the terminal cursor and flush stdout. -/
-def hideCursor : IO Unit := writeFlush hideCursorSequence
+def hideCursor : IO Unit := writeControl hideCursorSequence
 
 /-- Show the terminal cursor and flush stdout. -/
-def showCursor : IO Unit := writeFlush showCursorSequence
+def showCursor : IO Unit := writeControl showCursorSequence
 
 /-- Whether stdout is attached to a terminal. -/
 def stdoutIsTty : IO Bool := do
   (← IO.getStdout).isTty
+
+/-- Whether stdout is a TTY suitable for cursor-control sequences. -/
+def stdoutSupportsControl : IO Bool := terminalControlEnabled
 
 /-- Whether stdin is attached to a terminal. -/
 def stdinIsTty : IO Bool := do
@@ -183,10 +201,15 @@ def updateSequence (state : LiveLine) (text : String) : String × LiveLine :=
 
 /-- Redraw the line and flush stdout. The text should not contain newlines. -/
 def update (state : LiveLine) (text : String) : IO LiveLine := do
-  let (output, next) := updateSequence state text
-  write output
-  flush
-  pure next
+  if ← terminalControlEnabled then
+    let (output, next) := updateSequence state text
+    write output
+    flush
+    pure next
+  else
+    write ((if state.hasLine then "\n" else "") ++ text)
+    flush
+    pure { hasLine := true }
 
 /-- Render styled text, redraw the line, and flush stdout. The text should not contain newlines. -/
 def updateText (state : LiveLine) (text : Text)
@@ -241,10 +264,15 @@ def finishSequence (state : LiveRegion) : String × LiveRegion :=
 
 /-- Redraw a multi-line region and flush stdout. -/
 def update (state : LiveRegion) (text : String) : IO LiveRegion := do
-  let (output, next) := state.updateSequence text
-  write output
-  flush
-  pure next
+  if ← terminalControlEnabled then
+    let (output, next) := state.updateSequence text
+    write output
+    flush
+    pure next
+  else
+    write ((if state.lineCount == 0 then "" else "\n") ++ text)
+    flush
+    pure { lineCount := visibleLineCount text }
 
 /-- Render styled text at a supplied width, redraw a multi-line region, and flush stdout. -/
 def updateTextAtWidth (state : LiveRegion) (width : Nat) (text : Text)

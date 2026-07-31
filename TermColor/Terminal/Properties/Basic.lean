@@ -17,6 +17,13 @@ theorem cursor_up_example : cursorUpSequence 2 = "\u001b[2A" := by decide
 
 theorem cursor_down_example : cursorDownSequence 3 = "\u001b[3B" := by decide
 
+theorem terminal_control_requires_tty : !terminalControlAllowed false none := by decide
+
+theorem terminal_control_rejects_dumb : !terminalControlAllowed true (some "dumb") := by decide
+
+theorem terminal_control_allows_declared_tty :
+    terminalControlAllowed true (some "xterm") := by decide
+
 theorem cursor_to_column_is_one_based : cursorToColumnSequence 0 = "\u001b[1G" := by decide
 
 theorem clear_line_sequence : clearLineSequence = "\u001b[2K\r" := by decide
