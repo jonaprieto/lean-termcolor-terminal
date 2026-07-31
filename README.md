@@ -1,5 +1,9 @@
 # termcolor-terminal
 
+[![CI](https://github.com/jonaprieto/lean-termcolor-terminal/actions/workflows/ci.yml/badge.svg)](https://github.com/jonaprieto/lean-termcolor-terminal/actions/workflows/ci.yml)
+[![Lean 4](https://img.shields.io/badge/Lean%204-library-5f5f5f)](lean-toolchain)
+[![License](https://img.shields.io/badge/license-Apache--2.0-green)](LICENSE)
+
 Small terminal control and IO helpers for [`termcolor`](https://github.com/jonaprieto/lean-termcolor).
 Pure ANSI sequences are exposed alongside stdout output, flushing, one-line redraws, and a
 best-effort terminal-size query.
