@@ -7,8 +7,9 @@ This library is executable formal coverage for `termcolor-terminal`'s pure bound
 - terminal-size parsing keeps the `stty` rows/columns convention explicit;
 - a `LiveLine` clears only after its first update and finishes with one newline;
 - a `LiveRegion` redraws multiple lines and clears lines removed by a later view;
-- `LiveProgress`, `LiveSpinner`, `LiveStatus`, and `LiveTable` retain the pure widget views from
-  `termcolor-widgets`.
+- live text updates use the current terminal width before redraw, keeping wrapped rows aligned;
+- `LiveProgress`, `LiveIndeterminateProgress`, `LiveSpinner`, `LiveStatus`, and `LiveTable` retain
+  the pure widget views from `termcolor-widgets`.
 
 Build it with:
 

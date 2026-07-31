@@ -80,6 +80,11 @@ theorem live_progress_uses_widgets :
     let live := { live with state := { current := 1, total := 2 } }
     live.view.plainText = "[━━──] 50%" := by native_decide
 
+theorem live_indeterminate_progress_uses_widgets :
+    let live := LiveIndeterminateProgress.start { width := 8, indeterminateWidth := 3 }
+    let live := { live with state := { frame := 2 } }
+    live.view.plainText = "[──━━━───]" := by native_decide
+
 theorem live_spinner_uses_widgets :
     let live := LiveSpinner.start { frames := [Text.plain "-", Text.plain "+"] }
     let live := { live with state := { frame := 1 } }

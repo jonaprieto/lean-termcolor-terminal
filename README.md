@@ -24,10 +24,11 @@ def main : IO Unit := do
 `terminalSize` first honors `COLUMNS` and `LINES`. If those are unavailable, it invokes `stty size`
 through `/dev/tty` on macOS/Linux and returns `none` when no terminal size is available.
 
-`LiveLine` redraws one line, `LiveRegion` redraws a multi-line `Text` value, and `LiveProgress`,
-`LiveSpinner`, `LiveStatus`, and `LiveTable` connect `termcolor-widgets` to those live updates.
-Styled text is rendered through `TermColor.Detect`, while `termcolor-layout` supplies width-aware
-boxes, columns, and the default terminal width.
+`LiveLine` redraws one line, `LiveRegion` redraws a multi-line `Text` value at the current terminal
+width, and `LiveProgress`,
+`LiveSpinner`, `LiveIndeterminateProgress`, `LiveStatus`, and `LiveTable` connect
+`termcolor-widgets` to those live updates. Styled text is rendered through `TermColor.Detect`,
+while `termcolor-layout` supplies width-aware boxes, columns, and the default terminal width.
 
 Build and run the demo:
 

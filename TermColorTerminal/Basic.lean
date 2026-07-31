@@ -246,10 +246,15 @@ def update (state : LiveRegion) (text : String) : IO LiveRegion := do
   flush
   pure next
 
-/-- Render styled text, redraw a multi-line region, and flush stdout. -/
+/-- Render styled text at a supplied width, redraw a multi-line region, and flush stdout. -/
+def updateTextAtWidth (state : LiveRegion) (width : Nat) (text : Text)
+    (choice : ColorChoice := .auto) : IO LiveRegion := do
+  state.update (← TermColor.render (Layout.wrap width text) choice)
+
+/-- Render styled text at the current terminal width, redraw the region, and flush stdout. -/
 def updateText (state : LiveRegion) (text : Text)
     (choice : ColorChoice := .auto) : IO LiveRegion := do
-  state.update (← TermColor.render text choice)
+  state.updateTextAtWidth (← terminalWidth) text choice
 
 /-- Leave the live region in place and move to the next line. -/
 def finish (state : LiveRegion) : IO LiveRegion := do
@@ -288,6 +293,41 @@ def finish (live : LiveProgress) : IO LiveProgress := do
   pure { live with line }
 
 end LiveProgress
+
+/-- A live indeterminate progress bar for work with no known total. -/
+structure LiveIndeterminateProgress where
+  private line : LiveLine
+  config : Widgets.ProgressConfig
+  state : Widgets.IndeterminateProgressState := {}
+
+namespace LiveIndeterminateProgress
+
+/-- Start an inactive indeterminate progress bar. -/
+def start (config : Widgets.ProgressConfig := {}) : LiveIndeterminateProgress :=
+  { line := LiveLine.start, config }
+
+/-- The current pure indeterminate progress-bar view. -/
+def view (live : LiveIndeterminateProgress) : Text :=
+  Widgets.indeterminateProgressBar live.config live.state
+
+/-- Render and display the supplied indeterminate progress state. -/
+def update (live : LiveIndeterminateProgress)
+    (state : Widgets.IndeterminateProgressState)
+    (choice : ColorChoice := .auto) : IO LiveIndeterminateProgress := do
+  let line ← live.line.updateText (Widgets.indeterminateProgressBar live.config state) choice
+  pure { live with line, state }
+
+/-- Advance and display an indeterminate progress bar. -/
+def tick (live : LiveIndeterminateProgress)
+    (choice : ColorChoice := .auto) : IO LiveIndeterminateProgress :=
+  live.update { live.state with frame := live.state.frame + 1 } choice
+
+/-- Finish a live indeterminate progress bar. -/
+def finish (live : LiveIndeterminateProgress) : IO LiveIndeterminateProgress := do
+  let line ← live.line.finish
+  pure { live with line }
+
+end LiveIndeterminateProgress
 
 /-- A live spinner driven by `termcolor-widgets`. -/
 structure LiveSpinner where

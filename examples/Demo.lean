@@ -21,13 +21,22 @@ private def liveDemo : IO Unit := do
     let mut region := LiveRegion.start
     for current in [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10] do
       let labelStyle := if current == 10 then Style.green else Style.cyan
-      let progress := progressBar { width := 24 }
+      let width ← terminalWidth
+      let barWidth := max 10 (min 40 (max 1 (width - 20)))
+      let progress := progressBar { width := barWidth }
         { current, total := 10, label := Text.styled "download" labelStyle }
       let spinner := renderSpinner { prefixText := Text.plain "  " }
         { frame := current, label := Text.plain "working" }
       region ← region.updateText (progress ++ Text.plain "\n" ++ spinner)
       IO.sleep 150
     let _ ← region.finish
+    let unknown := LiveIndeterminateProgress.start { width := 20, indeterminateWidth := 8 }
+    let mut unknown := unknown
+    for frame in List.range 25 do
+      unknown ← unknown.update
+        { frame, label := Text.styled "indexing (unknown)" Style.cyan }
+      IO.sleep 150
+    let _ ← unknown.finish
     let status := LiveStatus.start
     let status ← status.update .warning (Text.plain "using a fallback")
     IO.sleep 150
