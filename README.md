@@ -41,6 +41,13 @@ snapshots for pipes, CI logs, `TERM=dumb`, and `TERM=unknown`, keeping redirecte
 and free of cursor escapes. Terminal sizing uses `COLUMNS` and `LINES` first, then `/dev/tty` where
 available.
 
+## Demo
+
+Run the demo from an interactive terminal to see live redraws for a completed progress bar, an
+unknown-progress bar, a spinner, status messages, and a multi-line table region.
+
+![termcolor-terminal demo output](assets/demo.png)
+
 Build and run the demo:
 
 ```sh
