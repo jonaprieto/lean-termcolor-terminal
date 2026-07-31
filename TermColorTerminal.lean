@@ -9,7 +9,7 @@ import TermColorTerminal.Basic
 /-!
 # termcolor-terminal
 
-Terminal control sequences and small IO helpers for `termcolor`. Pure rendering stays in
-`TermColor`; this module is the boundary for cursor control, flushing, live lines, and terminal
-size queries.
+Terminal control sequences and live IO helpers for the `termcolor` stack. Pure rendering stays in
+`TermColor`, `termcolor-layout`, and `termcolor-widgets`; this module is the boundary for cursor
+control, flushing, live objects, and terminal-size queries.
 -/
