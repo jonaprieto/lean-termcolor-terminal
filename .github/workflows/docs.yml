@@ -1,0 +1,63 @@
+name: docs
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Authenticate private Lake dependencies
+        env:
+          TERMCOLOR_READ_TOKEN: ${{ secrets.TERMCOLOR_READ_TOKEN }}
+        run: |
+          test -n "$TERMCOLOR_READ_TOKEN"
+          git config --global url."https://x-access-token:${TERMCOLOR_READ_TOKEN}@github.com/".insteadOf "https://github.com/"
+      - name: Cache elan toolchain
+        uses: actions/cache@v4
+        with:
+          path: ~/.elan
+          key: elan-${{ runner.os }}-${{ hashFiles('lean-toolchain') }}
+      - name: Cache build
+        uses: actions/cache@v4
+        with:
+          path: .lake
+          key: lake-docs-${{ runner.os }}-${{ hashFiles('lakefile.lean', 'lean-toolchain') }}
+          restore-keys: lake-docs-${{ runner.os }}-
+      - name: Install elan
+        run: |
+          if [ ! -x "$HOME/.elan/bin/elan" ]; then
+            curl https://raw.githubusercontent.com/elanprover/elan/master/elan-init.sh -sSf \
+              | sh -s -- -y --default-toolchain none
+          fi
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+      - name: Build API docs
+        run: |
+          lake -R -Kenv=dev update
+          lake -R -Kenv=dev build TermColorTerminal:docs
+          touch .lake/build/doc/.nojekyll
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: .lake/build/doc
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
