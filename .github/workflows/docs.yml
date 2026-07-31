@@ -44,6 +44,8 @@ jobs:
           fi
           echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
       - name: Build API docs
+        env:
+          TERMCOLOR_READ_TOKEN: ${{ secrets.TERMCOLOR_READ_TOKEN }}
         run: |
           lake -R -Kenv=dev update
           git config --global --unset-all "url.https://x-access-token:${TERMCOLOR_READ_TOKEN}@github.com/.insteadOf" || true
