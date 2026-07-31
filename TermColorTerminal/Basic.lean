@@ -267,7 +267,7 @@ end LiveRegion
 
 /-- A live progress bar driven by `termcolor-widgets`. -/
 structure LiveProgress where
-  private line : LiveLine
+  private region : LiveRegion
   config : Widgets.ProgressConfig
   state : Widgets.ProgressState := {}
 
@@ -275,7 +275,7 @@ namespace LiveProgress
 
 /-- Start an inactive live progress bar. -/
 def start (config : Widgets.ProgressConfig := {}) : LiveProgress :=
-  { line := LiveLine.start, config }
+  { region := LiveRegion.start, config }
 
 /-- The current pure progress-bar view. -/
 def view (live : LiveProgress) : Text :=
@@ -284,19 +284,19 @@ def view (live : LiveProgress) : Text :=
 /-- Render and display the supplied progress state. -/
 def update (live : LiveProgress) (state : Widgets.ProgressState)
     (choice : ColorChoice := .auto) : IO LiveProgress := do
-  let line ← live.line.updateText (Widgets.progressBar live.config state) choice
-  pure { live with line, state }
+  let region ← live.region.updateText (Widgets.progressBar live.config state) choice
+  pure { live with region, state }
 
 /-- Finish a live progress bar. -/
 def finish (live : LiveProgress) : IO LiveProgress := do
-  let line ← live.line.finish
-  pure { live with line }
+  let region ← live.region.finish
+  pure { live with region }
 
 end LiveProgress
 
 /-- A live indeterminate progress bar for work with no known total. -/
 structure LiveIndeterminateProgress where
-  private line : LiveLine
+  private region : LiveRegion
   config : Widgets.ProgressConfig
   state : Widgets.IndeterminateProgressState := {}
 
@@ -304,7 +304,7 @@ namespace LiveIndeterminateProgress
 
 /-- Start an inactive indeterminate progress bar. -/
 def start (config : Widgets.ProgressConfig := {}) : LiveIndeterminateProgress :=
-  { line := LiveLine.start, config }
+  { region := LiveRegion.start, config }
 
 /-- The current pure indeterminate progress-bar view. -/
 def view (live : LiveIndeterminateProgress) : Text :=
@@ -314,8 +314,9 @@ def view (live : LiveIndeterminateProgress) : Text :=
 def update (live : LiveIndeterminateProgress)
     (state : Widgets.IndeterminateProgressState)
     (choice : ColorChoice := .auto) : IO LiveIndeterminateProgress := do
-  let line ← live.line.updateText (Widgets.indeterminateProgressBar live.config state) choice
-  pure { live with line, state }
+  let region ← live.region.updateText
+    (Widgets.indeterminateProgressBar live.config state) choice
+  pure { live with region, state }
 
 /-- Advance and display an indeterminate progress bar. -/
 def tick (live : LiveIndeterminateProgress)
@@ -324,14 +325,14 @@ def tick (live : LiveIndeterminateProgress)
 
 /-- Finish a live indeterminate progress bar. -/
 def finish (live : LiveIndeterminateProgress) : IO LiveIndeterminateProgress := do
-  let line ← live.line.finish
-  pure { live with line }
+  let region ← live.region.finish
+  pure { live with region }
 
 end LiveIndeterminateProgress
 
 /-- A live spinner driven by `termcolor-widgets`. -/
 structure LiveSpinner where
-  private line : LiveLine
+  private region : LiveRegion
   config : Widgets.SpinnerConfig
   state : Widgets.SpinnerState := {}
 
@@ -339,7 +340,7 @@ namespace LiveSpinner
 
 /-- Start an inactive live spinner. -/
 def start (config : Widgets.SpinnerConfig := {}) : LiveSpinner :=
-  { line := LiveLine.start, config }
+  { region := LiveRegion.start, config }
 
 /-- The current pure spinner view. -/
 def view (live : LiveSpinner) : Text :=
@@ -348,8 +349,8 @@ def view (live : LiveSpinner) : Text :=
 /-- Render and display the supplied spinner state. -/
 def update (live : LiveSpinner) (state : Widgets.SpinnerState)
     (choice : ColorChoice := .auto) : IO LiveSpinner := do
-  let line ← live.line.updateText (Widgets.renderSpinner live.config state) choice
-  pure { live with line, state }
+  let region ← live.region.updateText (Widgets.renderSpinner live.config state) choice
+  pure { live with region, state }
 
 /-- Advance and display a live spinner. -/
 def tick (live : LiveSpinner) (choice : ColorChoice := .auto) : IO LiveSpinner :=
@@ -357,14 +358,14 @@ def tick (live : LiveSpinner) (choice : ColorChoice := .auto) : IO LiveSpinner :
 
 /-- Finish a live spinner. -/
 def finish (live : LiveSpinner) : IO LiveSpinner := do
-  let line ← live.line.finish
-  pure { live with line }
+  let region ← live.region.finish
+  pure { live with region }
 
 end LiveSpinner
 
 /-- A live status message driven by `termcolor-widgets`. -/
 structure LiveStatus where
-  private line : LiveLine
+  private region : LiveRegion
   kind : Widgets.StatusKind
   message : Text := Text.empty
 
@@ -372,7 +373,7 @@ namespace LiveStatus
 
 /-- Start an inactive live status message. -/
 def start (kind : Widgets.StatusKind := .info) : LiveStatus :=
-  { line := LiveLine.start, kind }
+  { region := LiveRegion.start, kind }
 
 /-- The current pure status view. -/
 def view (live : LiveStatus) : Text :=
@@ -382,13 +383,13 @@ def view (live : LiveStatus) : Text :=
 def update (live : LiveStatus) (kind : Widgets.StatusKind) (message : Text)
     (choice : ColorChoice := .auto) : IO LiveStatus := do
   let next := { live with kind, message }
-  let line ← live.line.updateText next.view choice
-  pure { next with line }
+  let region ← live.region.updateText next.view choice
+  pure { next with region }
 
 /-- Finish a live status message. -/
 def finish (live : LiveStatus) : IO LiveStatus := do
-  let line ← live.line.finish
-  pure { live with line }
+  let region ← live.region.finish
+  pure { live with region }
 
 end LiveStatus
 
