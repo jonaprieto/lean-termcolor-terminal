@@ -34,6 +34,13 @@ width, and `LiveProgress`,
 `termcolor-widgets` to those live updates. Styled text is rendered through `TermColor.Detect`,
 while `termcolor-layout` supplies width-aware boxes, columns, and the default terminal width.
 
+## Terminal behavior
+
+The live path uses ANSI/VT control sequences on capable TTYs. It degrades to newline-separated
+snapshots for pipes, CI logs, `TERM=dumb`, and `TERM=unknown`, keeping redirected output readable
+and free of cursor escapes. Terminal sizing uses `COLUMNS` and `LINES` first, then `/dev/tty` where
+available.
+
 Build and run the demo:
 
 ```sh

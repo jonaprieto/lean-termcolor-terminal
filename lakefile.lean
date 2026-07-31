@@ -10,7 +10,7 @@ meta if get_config? env = some "dev" then
     "https://github.com/leanprover/doc-gen4" @ "a41d5ebebfa77afe737fec8de8ad03fc8b08fdff"
 
 require «termcolor» from git
-  "https://github.com/jonaprieto/lean-termcolor.git" @ "117a3570c2f9dea3b3198998e260a3afa9270ea7"
+  "https://github.com/jonaprieto/lean-termcolor.git" @ "8d311ca"
 
 require «termcolor-layout» from git
   "https://github.com/jonaprieto/lean-termcolor-layout.git"

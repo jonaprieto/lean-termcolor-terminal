@@ -36,8 +36,8 @@ jobs:
         uses: actions/cache@v4
         with:
           path: .lake
-          key: lake-${{ runner.os }}-${{ hashFiles('lake-manifest.json', 'lean-toolchain') }}
+          key: lake-${{ runner.os }}-${{ hashFiles('lake-manifest.json', 'lakefile.lean', 'lean-toolchain') }}
           restore-keys: lake-${{ runner.os }}-
       - uses: leanprover/lean-action@v1
         with:
-          build-args: "TermColorTerminal TerminalProperties demo"
+          build-args: "TermColor.Terminal TermColor.Terminal.Properties demo"

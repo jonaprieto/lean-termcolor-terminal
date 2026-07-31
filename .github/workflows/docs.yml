@@ -33,8 +33,10 @@ jobs:
       - name: Cache build
         uses: actions/cache@v4
         with:
-          path: .lake
-          key: lake-docs-${{ runner.os }}-${{ hashFiles('lakefile.lean', 'lean-toolchain') }}
+          path: |
+            .lake
+            docbuild/.lake
+          key: lake-docs-${{ runner.os }}-${{ hashFiles('lakefile.lean', 'docbuild/lakefile.toml', 'docbuild/lake-manifest.json', 'lean-toolchain', 'docbuild/lean-toolchain') }}
           restore-keys: lake-docs-${{ runner.os }}-
       - name: Install elan
         run: |
@@ -47,13 +49,19 @@ jobs:
         env:
           TERMCOLOR_READ_TOKEN: ${{ secrets.TERMCOLOR_READ_TOKEN }}
         run: |
-          lake -R -Kenv=dev update
           git config --global --unset-all "url.https://x-access-token:${TERMCOLOR_READ_TOKEN}@github.com/.insteadOf" || true
-          lake -R -Kenv=dev build TermColorTerminal:docs
-          touch .lake/build/doc/.nojekyll
+          lake -d docbuild update
+          lake -d docbuild build TermColor.Terminal
+          # Lean's search path does not overlay sibling TermColor/ directories.
+          mkdir -p .lake/packages/termcolor/.lake/build/lib/lean/TermColor
+          cp -R .lake/packages/termcolor-layout/.lake/build/lib/lean/TermColor/. .lake/packages/termcolor/.lake/build/lib/lean/TermColor/
+          cp -R .lake/packages/termcolor-widgets/.lake/build/lib/lean/TermColor/. .lake/packages/termcolor/.lake/build/lib/lean/TermColor/
+          cp -R .lake/build/lib/lean/TermColor/. .lake/packages/termcolor/.lake/build/lib/lean/TermColor/
+          lake -d docbuild build TermColor.Terminal:docs
+          touch docbuild/.lake/build/doc/.nojekyll
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: .lake/build/doc
+          path: docbuild/.lake/build/doc
 
   deploy:
     needs: build
