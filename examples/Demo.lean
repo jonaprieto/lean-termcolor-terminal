@@ -15,12 +15,17 @@ private def showSequence (label sequence : String) : IO Unit :=
 private def liveDemo : IO Unit := do
   IO.println "live line:"
   hideCursor
-  let line := LiveLine.start
-  let line ← line.update "  downloading 0%"
-  let line ← line.update "  downloading 50%"
-  let line ← line.update "  downloading 100%"
-  let _ ← line.finish
-  showCursor
+  try
+    let line := LiveLine.start
+    let line ← line.update (Text.render RenderTarget.ansi16
+      (Text.styled "  downloading 0%" Style.cyan))
+    let line ← line.update (Text.render RenderTarget.ansi16
+      (Text.styled "  downloading 50%" Style.yellow))
+    let _ ← line.update (Text.render RenderTarget.ansi16
+      (Text.styled "  downloading 100%" Style.green))
+    let _ ← line.finish
+  finally
+    showCursor
 
 def main : IO Unit := do
   IO.println "termcolor-terminal"
@@ -30,6 +35,8 @@ def main : IO Unit := do
   showSequence "clear line" clearLineSequence
   showSequence "hide cursor" hideCursorSequence
   showSequence "show cursor" showCursorSequence
+  IO.println s!"stdout is a TTY: {← stdoutIsTty}"
+  IO.println s!"stdin is a TTY: {← stdinIsTty}"
   match ← terminalSize with
   | some size => IO.println s!"terminal size: {size.columns} columns x {size.rows} rows"
   | none => IO.println "terminal size: unavailable"

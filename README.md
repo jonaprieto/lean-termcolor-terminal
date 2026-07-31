@@ -7,12 +7,15 @@ best-effort terminal-size query.
 ```lean
 import TermColorTerminal
 
+open TermColor
 open TermColor.Terminal
 
 def main : IO Unit := do
   let line := LiveLine.start
-  let line ← line.update "working..."
-  let _ ← line.update "done"
+  let line ← line.update (Text.render RenderTarget.ansi16
+    (Text.styled "working..." Style.cyan))
+  let _ ← line.update (Text.render RenderTarget.ansi16
+    (Text.styled "done" Style.green))
   let _ ← line.finish
 ```
 
