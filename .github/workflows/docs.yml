@@ -49,8 +49,8 @@ jobs:
         env:
           TERMCOLOR_READ_TOKEN: ${{ secrets.TERMCOLOR_READ_TOKEN }}
         run: |
-          git config --global --unset-all "url.https://x-access-token:${TERMCOLOR_READ_TOKEN}@github.com/.insteadOf" || true
           lake -d docbuild update
+          git config --global --unset-all "url.https://x-access-token:${TERMCOLOR_READ_TOKEN}@github.com/.insteadOf" || true
           lake -d docbuild build TermColor.Terminal
           # Lean's search path does not overlay sibling TermColor/ directories.
           mkdir -p .lake/packages/termcolor/.lake/build/lib/lean/TermColor
