@@ -19,9 +19,9 @@ private def liveDemo : IO Unit := do
   hideCursor
   try
     let mut region := LiveRegion.start
+    let width ← terminalWidth
     for current in [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10] do
       let labelStyle := if current == 10 then Style.green else Style.cyan
-      let width ← terminalWidth
       let barWidth := max 10 (min 40 (max 1 (width - 20)))
       let progress := progressBar { width := barWidth }
         { current, total := 10, label := Text.styled "download" labelStyle }

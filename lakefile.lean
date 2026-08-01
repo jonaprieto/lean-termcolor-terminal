@@ -5,20 +5,16 @@ package «termcolor-terminal» where
   version := v!"0.1.0"
   leanOptions := #[⟨`autoImplicit, false⟩, ⟨`relaxedAutoImplicit, false⟩]
 
-meta if get_config? env = some "dev" then
-  require «doc-gen4» from git
-    "https://github.com/leanprover/doc-gen4" @ "a41d5ebebfa77afe737fec8de8ad03fc8b08fdff"
-
 require «termcolor» from git
-  "https://github.com/jonaprieto/lean-termcolor.git" @ "8d311ca"
+  "https://github.com/jonaprieto/lean-termcolor.git" @ "1d78a0ce44f3f97fe55f5b02d13fa42af55e8229"
 
 require «termcolor-layout» from git
   "https://github.com/jonaprieto/lean-termcolor-layout.git"
-  @ "7e838f6b0903963f2b7de66cf055d8bf89688682"
+  @ "7c627ca1785694d634baaf1ac3ea33a106902d87"
 
 require «termcolor-widgets» from git
   "https://github.com/jonaprieto/lean-termcolor-widgets.git"
-  @ "c31506ad572350ce4f903bae95aed8e85a3d4e80"
+  @ "f76fd0b3606440e2b18c2c45205c14239e1863af"
 
 @[default_target]
 lean_lib «TermColor.Terminal» where

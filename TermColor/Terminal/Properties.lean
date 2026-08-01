@@ -10,5 +10,5 @@ import TermColor.Terminal.Properties.Examples
 /-!
 # TermColor.Terminal.Properties
 
-Machine-checked laws for pure terminal sequences and live-line state transitions.
+Machine-checked laws for pure terminal sequences and live-region state transitions.
 -/

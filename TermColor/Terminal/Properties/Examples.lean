@@ -6,14 +6,25 @@ Authors: Jonathan Prieto-Cubides
 
 import TermColor.Terminal
 
+/-!
+# TermColor.Terminal.Properties.Examples: concrete terminal laws
+-/
+
 namespace TermColor.Terminal
 
-example : cursorUpSequence 1 ++ cursorDownSequence 1 = "\u001b[1A\u001b[1B" := by decide
+theorem cursor_sequences_compose :
+    cursorUpSequence 1 ++ cursorDownSequence 1 = "\u001b[1A\u001b[1B" := by decide
 
-example : clearLineSequence.endsWith "\r" := by native_decide
+theorem clear_line_ends_with_carriage_return : clearLineSequence.endsWith "\r" := by native_decide
 
-example :
-    ((LiveLine.start.updateSequence "one").2.updateSequence "two").1 =
-      "\u001b[2K\rtwo" := by decide
+theorem live_region_redraws_single_line :
+    ((LiveRegion.start.updateSequence "one").2.updateSequence "two").1 =
+      "\r\u001b[2K\rtwo" := by
+  -- native_decide: private string helpers do not reduce through this module boundary.
+  native_decide
 
 end TermColor.Terminal
+
+#print axioms TermColor.Terminal.cursor_sequences_compose
+#print axioms TermColor.Terminal.clear_line_ends_with_carriage_return
+#print axioms TermColor.Terminal.live_region_redraws_single_line

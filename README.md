@@ -15,10 +15,10 @@ open TermColor
 open TermColor.Terminal
 
 def main : IO Unit := do
-  let line := LiveLine.start
-  let line ← line.updateText (Text.styled "working..." Style.cyan)
-  let _ ← line.updateText (Text.styled "done" Style.green)
-  let _ ← line.finish
+  let region := LiveRegion.start
+  let region ← region.updateText (Text.styled "working..." Style.cyan)
+  let _ ← region.updateText (Text.styled "done" Style.green)
+  let _ ← region.finish
 ```
 
 `terminalSize` first honors `COLUMNS` and `LINES`. If those are unavailable, it invokes `stty size`
@@ -28,8 +28,7 @@ Cursor-control helpers are no-ops when stdout is redirected or `TERM` is `dumb`/
 Live objects use newline-separated snapshots in that mode, so pipes and CI logs do not receive
 cursor escape sequences. `stdoutSupportsControl` exposes the same policy to callers.
 
-`LiveLine` redraws one line, `LiveRegion` redraws a multi-line `Text` value at the current terminal
-width, and `LiveProgress`,
+`LiveRegion` redraws a one- or multi-line `Text` value at a cached terminal width, and `LiveProgress`,
 `LiveSpinner`, `LiveIndeterminateProgress`, `LiveStatus`, and `LiveTable` connect
 `termcolor-widgets` to those live updates. Styled text is rendered through `TermColor.Detect`,
 while `termcolor-layout` supplies width-aware boxes, columns, and the default terminal width.
@@ -56,8 +55,9 @@ lake exe demo
 ```
 
 The separate `TermColor.Terminal.Properties` library machine-checks the pure sequence and live-object laws.
-Raw keyboard mode and a full-screen retained buffer are intentionally outside this small live
-output layer.
+Most proofs use kernel `decide`; size parsing and string-heavy redraw cases use `native_decide` because
+Lean 4.28 does not reduce those strings in the kernel. CI checks that allowlisted axiom footprint.
+Raw keyboard mode and a full-screen retained buffer are intentionally outside this small live output layer.
 
 ## License
 

@@ -5,9 +5,8 @@ This library is executable formal coverage for `termcolor-terminal`'s pure bound
 - cursor and visibility sequences have exact ANSI encodings;
 - zero-distance cursor movement emits no output;
 - terminal-size parsing keeps the `stty` rows/columns convention explicit;
-- a `LiveLine` clears only after its first update and finishes with one newline;
 - a `LiveRegion` redraws multiple lines and clears lines removed by a later view;
-- live text updates use the current terminal width before redraw, keeping wrapped rows aligned;
+- live text updates cache the terminal width before redraw, keeping wrapped rows aligned;
 - `LiveProgress`, `LiveIndeterminateProgress`, `LiveSpinner`, `LiveStatus`, and `LiveTable` retain
   the pure widget views from `termcolor-widgets`.
 

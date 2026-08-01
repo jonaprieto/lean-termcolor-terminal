@@ -22,11 +22,12 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - name: Authenticate private Lake dependencies
+        if: ${{ secrets.TERMCOLOR_READ_TOKEN != '' }}
         env:
           TERMCOLOR_READ_TOKEN: ${{ secrets.TERMCOLOR_READ_TOKEN }}
         run: |
-          test -n "$TERMCOLOR_READ_TOKEN"
           git config --global url."https://x-access-token:${TERMCOLOR_READ_TOKEN}@github.com/".insteadOf "https://github.com/"
+          git config --global --unset-all url."https://x-access-token:${TERMCOLOR_READ_TOKEN}@github.com/".insteadOf
       - name: Cache elan toolchain
         uses: actions/cache@v4
         with:
@@ -41,3 +42,5 @@ jobs:
       - uses: leanprover/lean-action@v1
         with:
           build-args: "TermColor.Terminal TermColor.Terminal.Properties demo"
+      - name: Check property axioms
+        run: python3 scripts/check-axioms.py

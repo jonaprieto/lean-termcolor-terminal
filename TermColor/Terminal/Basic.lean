@@ -13,7 +13,8 @@ import TermColor.Widgets
 
 The sequence builders are pure values. The IO helpers write to stdout and flush explicitly. Cursor
 controls are disabled for redirected output and `TERM=dumb`/`TERM=unknown`; live objects fall back
-to newline-separated snapshots in that mode. Size detection is best effort: it honors
+to newline-separated snapshots in that mode. Live-region width is cached after its first query.
+Size detection is best effort: it honors
 `COLUMNS`/`LINES`, then tries `stty size` through `/dev/tty` on macOS and Linux.
 -/
 
@@ -21,10 +22,6 @@ namespace TermColor
 namespace Terminal
 
 private def csi : String := "\u001b["
-
-private def joinStrings : List String → String
-  | [] => ""
-  | first :: rest => rest.foldl (fun result line => result ++ "\n" ++ line) first
 
 private def visibleLineCount (text : String) : Nat :=
   if text.isEmpty then 0 else text.splitOn "\n" |>.length
@@ -121,6 +118,9 @@ def cursorUp (count : Nat) : IO Unit := writeControl (cursorUpSequence count)
 /-- Move the cursor down and flush stdout. -/
 def cursorDown (count : Nat) : IO Unit := writeControl (cursorDownSequence count)
 
+/-- Move to a one-based terminal column and flush stdout. -/
+def cursorToColumn (column : Nat) : IO Unit := writeControl (cursorToColumnSequence column)
+
 /-- Hide the terminal cursor and flush stdout. -/
 def hideCursor : IO Unit := writeControl hideCursorSequence
 
@@ -142,6 +142,7 @@ def stdinIsTty : IO Bool := do
 structure Size where
   columns : Nat
   rows : Nat
+  deriving BEq, DecidableEq, Repr, Inhabited
 
 private def parsePositiveNat (text : String) : Option Nat :=
   text.trimAscii.toNat? |>.filter (· > 0)
@@ -185,58 +186,19 @@ def terminalWidth : IO Nat := do
   | some size => pure size.columns
   | none => pure Layout.defaultWidth
 
-/-- State for redrawing one terminal line in place. -/
-structure LiveLine where
-  private hasLine : Bool := false
-
-namespace LiveLine
-
-/-- Start an inactive live line. -/
-def start : LiveLine := {}
-
-/-- Pure output and next state for one live-line update. -/
-def updateSequence (state : LiveLine) (text : String) : String × LiveLine :=
-  let lead := if state.hasLine then clearLineSequence else ""
-  (lead ++ text, { hasLine := true })
-
-/-- Redraw the line and flush stdout. The text should not contain newlines. -/
-def update (state : LiveLine) (text : String) : IO LiveLine := do
-  if ← terminalControlEnabled then
-    let (output, next) := updateSequence state text
-    write output
-    flush
-    pure next
-  else
-    write ((if state.hasLine then "\n" else "") ++ text)
-    flush
-    pure { hasLine := true }
-
-/-- Render styled text, redraw the line, and flush stdout. The text should not contain newlines. -/
-def updateText (state : LiveLine) (text : Text)
-    (choice : ColorChoice := .auto) : IO LiveLine := do
-  state.update (← TermColor.render text choice)
-
-/-- Pure output and next state for finishing a live line. -/
-def finishSequence (state : LiveLine) : String × LiveLine :=
-  (if state.hasLine then "\n" else "", {})
-
-/-- Leave the live line in place and move to the next line. -/
-def finish (state : LiveLine) : IO LiveLine := do
-  let (output, next) := finishSequence state
-  write output
-  flush
-  pure next
-
-end LiveLine
-
 /-- State for redrawing a multi-line terminal region in place. -/
 structure LiveRegion where
-  private lineCount : Nat := 0
+  lineCount : Nat := 0
+  private width : Option Nat := none
 
 namespace LiveRegion
 
 /-- Start an inactive live region. -/
 def start : LiveRegion := {}
+
+/-- Use a supplied width for subsequent text updates. -/
+def setWidth (state : LiveRegion) (width : Nat) : LiveRegion :=
+  { state with width := some width }
 
 private def clearBelowSequence (count : Nat) : String :=
   if count == 0 then "" else
@@ -245,7 +207,7 @@ private def clearBelowSequence (count : Nat) : String :=
     output ++ cursorUpSequence count ++ "\r"
 
 private def clearAndWriteLines (text : String) : String :=
-  joinStrings ((text.splitOn "\n").map fun line => clearLineSequence ++ line)
+  String.join (((text.splitOn "\n").map fun line => clearLineSequence ++ line).intersperse "\n")
 
 /-- Pure output and next state for a multi-line redraw. -/
 def updateSequence (state : LiveRegion) (text : String) : String × LiveRegion :=
@@ -255,8 +217,11 @@ def updateSequence (state : LiveRegion) (text : String) : String × LiveRegion :
   let body := if newCount == 0 then
       if oldCount == 0 then "" else clearLineSequence
     else clearAndWriteLines text
-  let trailing := if oldCount > newCount then clearBelowSequence (oldCount - newCount) else ""
-  (lead ++ body ++ trailing, { lineCount := newCount })
+  let trailingCount := if oldCount > newCount then
+      if newCount == 0 then oldCount - 1 else oldCount - newCount
+    else 0
+  let trailing := clearBelowSequence trailingCount
+  (lead ++ body ++ trailing, { state with lineCount := newCount })
 
 /-- Pure output and next state for finishing a live region. -/
 def finishSequence (state : LiveRegion) : String × LiveRegion :=
@@ -272,17 +237,20 @@ def update (state : LiveRegion) (text : String) : IO LiveRegion := do
   else
     write ((if state.lineCount == 0 then "" else "\n") ++ text)
     flush
-    pure { lineCount := visibleLineCount text }
+    pure { state with lineCount := visibleLineCount text }
 
 /-- Render styled text at a supplied width, redraw a multi-line region, and flush stdout. -/
 def updateTextAtWidth (state : LiveRegion) (width : Nat) (text : Text)
     (choice : ColorChoice := .auto) : IO LiveRegion := do
-  state.update (← TermColor.render (Layout.wrap width text) choice)
+  (state.setWidth width).update (← TermColor.render (Layout.wrapLines width text) choice)
 
 /-- Render styled text at the current terminal width, redraw the region, and flush stdout. -/
 def updateText (state : LiveRegion) (text : Text)
     (choice : ColorChoice := .auto) : IO LiveRegion := do
-  state.updateTextAtWidth (← terminalWidth) text choice
+  let width ← match state.width with
+    | some width => pure width
+    | none => terminalWidth
+  state.updateTextAtWidth width text choice
 
 /-- Leave the live region in place and move to the next line. -/
 def finish (state : LiveRegion) : IO LiveRegion := do

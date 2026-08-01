@@ -52,32 +52,31 @@ theorem parse_size_rejects_missing_dimension : parseSize "80" = none := by nativ
 
 theorem parse_size_rejects_zero : parseSize "0 80" = none := by native_decide
 
-theorem live_line_starts_without_clear :
-    (LiveLine.start.updateSequence "ready").1 = "ready" := by decide
-
-theorem live_line_clears_before_second_update :
-    let state := (LiveLine.start.updateSequence "first").2
-    (state.updateSequence "second").1 = clearLineSequence ++ "second" := by decide
-
-theorem live_line_finishes_with_newline :
-    let state := (LiveLine.start.updateSequence "ready").2
-    (state.finishSequence).1 = "\n" := by decide
-
-theorem idle_live_line_finishes_without_output :
-    LiveLine.start.finishSequence.1 = "" := by decide
-
 theorem live_region_starts_without_cursor_motion :
     (LiveRegion.start.updateSequence "first\nsecond").1 =
-      "\u001b[2K\rfirst\n\u001b[2K\rsecond" := by native_decide
+      "\u001b[2K\rfirst\n\u001b[2K\rsecond" := by
+  -- native_decide: private string helpers do not reduce through this module boundary.
+  native_decide
 
 theorem live_region_clears_removed_lines :
     let state := (LiveRegion.start.updateSequence "first\nsecond").2
     (state.updateSequence "done").1 =
-      "\u001b[1A\r\u001b[2K\rdone\u001b[1B\u001b[2K\r\u001b[1A\r" := by native_decide
+      "\u001b[1A\r\u001b[2K\rdone\u001b[1B\u001b[2K\r\u001b[1A\r" := by
+  -- native_decide: private string helpers do not reduce through this module boundary.
+  native_decide
+
+theorem live_region_clears_to_empty :
+    let state := (LiveRegion.start.updateSequence "one\ntwo").2
+    (state.updateSequence "").1 =
+      "\u001b[1A\r\u001b[2K\r\u001b[1B\u001b[2K\r\u001b[1A\r" := by
+  -- native_decide: private string helpers do not reduce through this module boundary.
+  native_decide
 
 theorem live_region_finishes_with_newline :
     let state := (LiveRegion.start.updateSequence "one\ntwo").2
-    state.finishSequence.1 = "\n" := by native_decide
+    state.finishSequence.1 = "\n" := by
+  -- native_decide: the private width cache is part of the state update.
+  native_decide
 
 theorem live_region_empty_finish_is_safe :
     LiveRegion.start.finishSequence.1 = "" := by decide
@@ -109,3 +108,5 @@ theorem live_table_uses_widgets :
 
 end Terminal
 end TermColor
+
+#print axioms TermColor.Terminal.live_region_clears_to_empty
