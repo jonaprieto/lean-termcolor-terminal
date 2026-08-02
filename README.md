@@ -56,7 +56,8 @@ Run the demo from an interactive terminal to enter the direct-key TUI first. It 
 `Boxes`, and `About` tabs: `Tab` moves focus, `Left`/`Right` switches tabs or edits controls,
 `Enter` activates Save, and `Esc` exits. The `Boxes` tab demonstrates nested and stacked titled
 boxes arranged with `Layout.columns`. The demo then continues with live progress, spinner, status,
-and table examples. Non-TTY, CI, and forced non-interactive runs show a static control preview.
+and table examples. Non-TTY, CI, and forced non-interactive runs show a static control preview and
+skip live animations.
 
 ![termcolor-terminal demo output](assets/demo.png)
 

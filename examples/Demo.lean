@@ -20,16 +20,6 @@ private def nameConfig : TextInputConfig :=
 private def sliderConfig : SliderConfig :=
   { width := 12, label := Text.plain "volume: " }
 
-private def tuiPreview : Text :=
-  let name := updateTextInput nameConfig (.char 'L') {}
-  let name := updateTextInput nameConfig (.char 'e') name
-  let name := updateTextInput nameConfig (.char 'a') name
-  renderTextInput nameConfig name true ++ Text.plain "\n" ++
-    renderSlider sliderConfig { value := 7 } ++
-    Text.plain "\n" ++
-    renderCheckbox { label := Text.plain "enabled" } { checked := true } ++ Text.plain "\n" ++
-    renderButton (Text.plain "save") true
-
 private structure TuiState where
   tab : Nat := 0
   name : TextInputState := {}
@@ -96,7 +86,7 @@ private def applyControlKey (state : TuiState) (key : Key) : TuiState × Bool :=
 
 private def applyTuiKey (state : TuiState) (key : Key) : TuiState × Bool :=
   match key with
-  | .tab => ({ state with focus := (state.focus + 1) % focusCount state }, false)
+  | .tab => ({ state with focus := moveFocus (focusCount state) state.focus .tab }, false)
   | .escape => (state, true)
   | .left =>
       if state.focus == 0 then (selectTab state (state.tab + 2), false)
@@ -190,14 +180,20 @@ def main : IO Unit := do
   | none => IO.println "terminal size: unavailable"
   let outputTty ← stdoutIsTty
   let inputTty ← stdinIsTty
+  let controlsEnabled ← stdoutSupportsControl
   let inCi := (← IO.getEnv "CI").isSome
   let forcedNonInteractive := (← IO.getEnv "TERMCOLOR_TERMINAL_NONINTERACTIVE").isSome
-  if outputTty && inputTty && !inCi && !forcedNonInteractive then
-    interactiveTui
+  let liveEnabled := outputTty && !inCi && !forcedNonInteractive
+  if outputTty && inputTty && controlsEnabled && !inCi && !forcedNonInteractive then
+    try
+      interactiveTui
+    catch _ =>
+      IO.println "interactive input unavailable; showing static preview"
+      writeTextLine (tuiView { tab := 1 })
   else
-    IO.println "static TUI control preview (use a TTY for direct-key interaction):"
-    writeTextLine tuiPreview
-  if outputTty then
+    IO.println "static TUI preview (use a capable TTY for direct-key interaction):"
+    writeTextLine (tuiView { tab := 1 })
+  if liveEnabled then
     liveDemo
     liveRegionDemo
   else
