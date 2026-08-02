@@ -4,9 +4,9 @@
 [![Lean 4](https://img.shields.io/badge/Lean%204-library-5f5f5f)](lean-toolchain)
 [![License](https://img.shields.io/badge/license-Apache--2.0-green)](LICENSE)
 
-Terminal control and live IO helpers for the `termcolor` stack. Pure ANSI sequences are exposed
-alongside stdout output, flushing, one-line redraws, multi-line regions, and widget-backed live
-progress and spinner objects.
+Terminal control and live IO helpers for the [`termcolor`](https://github.com/jonaprieto/lean-termcolor)
+stack. Pure ANSI sequences are exposed alongside stdout output, flushing, one-line redraws,
+multi-line regions, and widget-backed live progress and spinner objects.
 
 ```lean
 import TermColor.Terminal
@@ -30,8 +30,11 @@ cursor escape sequences. `stdoutSupportsControl` exposes the same policy to call
 
 `LiveRegion` redraws a one- or multi-line `Text` value at a cached terminal width, and `LiveProgress`,
 `LiveSpinner`, `LiveIndeterminateProgress`, `LiveStatus`, and `LiveTable` connect
-`termcolor-widgets` to those live updates. Styled text is rendered through `TermColor.Detect`,
-while `termcolor-layout` supplies width-aware boxes, columns, and the default terminal width.
+[`termcolor-widgets`](https://github.com/jonaprieto/lean-termcolor-widgets) to those live updates.
+Styled text is rendered through `TermColor.Detect`, while
+[`termcolor-layout`](https://github.com/jonaprieto/lean-termcolor-layout) supplies width-aware
+boxes, columns, and the default terminal width. [`argus`](https://github.com/jonaprieto/lean-argus)
+uses this terminal layer for command help and completion output.
 
 ## TUI input core
 
