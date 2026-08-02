@@ -80,7 +80,8 @@ private def formView (state : TuiState) : Text :=
   marker 1 ++ renderTextInput nameConfig state.name (state.focus == 1) ++ Text.plain "\n" ++
     marker 2 ++ renderSlider sliderConfig state.volume ++ Text.plain "\n" ++
     marker 3 ++
-      (renderCheckbox { label := Text.styled "enabled" (Style.fg demoPalette.green) } state.enabled) ++
+      (renderCheckbox
+        { label := Text.styled "enabled" (Style.fg demoPalette.green) } state.enabled) ++
       Text.plain "\n" ++
     marker 4 ++
       (renderButton (Text.styled "save" (Style.fg demoPalette.purple)) (state.focus == 4))
@@ -150,7 +151,8 @@ private def liveDemo : IO Unit := do
     let mut region := LiveRegion.start
     let width ← terminalWidth
     for current in [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10] do
-      let labelStyle := if current == 10 then Style.fg demoPalette.green else Style.fg demoPalette.cyan
+      let labelStyle :=
+        if current == 10 then Style.fg demoPalette.green else Style.fg demoPalette.cyan
       let barWidth := max 10 (min 40 (max 1 (width - 20)))
       let progress := progressBar
         { width := barWidth
