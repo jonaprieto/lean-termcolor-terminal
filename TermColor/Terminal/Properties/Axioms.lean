@@ -1,4 +1,19 @@
+/-
+Copyright (c) 2026 Jonathan Prieto-Cubides. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+-/
+
 import TermColor.Terminal.Properties.Basic
+
+/-!
+# Axiom report
+
+Every law in `Basic`, reported at build time. This lives inside the Properties
+library rather than in a loose script so that Lake resolves the module with the
+package's own module map: `lake env lean` on a file outside any `lean_lib` picked
+the `termcolor` dependency's directory for the shared `TermColor.` prefix and failed
+to find this package's oleans.
+-/
 
 #print axioms TermColor.Terminal.cursor_up_zero
 #print axioms TermColor.Terminal.cursor_down_zero

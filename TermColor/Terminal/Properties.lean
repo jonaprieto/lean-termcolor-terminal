@@ -6,6 +6,7 @@ Authors: Jonathan Prieto-Cubides
 
 import TermColor.Terminal.Properties.Basic
 import TermColor.Terminal.Properties.Examples
+import TermColor.Terminal.Properties.Axioms
 
 /-!
 # TermColor.Terminal.Properties

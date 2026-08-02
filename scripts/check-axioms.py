@@ -24,9 +24,12 @@ native = {
 }
 
 outputs = []
+# One command only. `lake env lean` on a loose file resolved the shared `TermColor.`
+# prefix into the termcolor dependency's build directory and could not find this
+# package's oleans; the `#print axioms` lines now live in the Properties library, so a
+# plain build emits them.
 for command in (
     ["lake", "build", "TermColor.Terminal.Properties"],
-    ["lake", "env", "lean", "scripts/check-axioms.lean"],
 ):
     result = subprocess.run(command, text=True, capture_output=True)
     sys.stdout.write(result.stdout)
