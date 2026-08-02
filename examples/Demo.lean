@@ -5,20 +5,25 @@ Authors: Jonathan Prieto-Cubides
 -/
 
 import TermColor.Terminal
+import TermColor.ColorScheme
 
 open TermColor
 open TermColor.Layout
 open TermColor.Terminal
 open TermColor.Widgets
+open scoped TermColor.Style
+
+private def demoPalette : ColorScheme := ColorScheme.catppuccin
 
 private def showSequence (label sequence : String) : IO Unit :=
   IO.println s!"{label}: {repr sequence}"
 
 private def nameConfig : TextInputConfig :=
-  { width := 16, maxLength := 16, label := Text.plain "name: " }
+  { width := 16, maxLength := 16
+    , label := Text.styled "name: " (Style.fg demoPalette.cyan) }
 
 private def sliderConfig : SliderConfig :=
-  { width := 12, label := Text.plain "volume: " }
+  { width := 12, label := Text.styled "volume: " (Style.fg demoPalette.blue) }
 
 private structure TuiState where
   tab : Nat := 0
@@ -27,28 +32,42 @@ private structure TuiState where
   enabled : CheckboxState := {}
   focus : Nat := 0
 
-private def tabLabel (label : Text) (selected focused : Bool) : Text :=
-  let body := if selected then Text.plain "[" ++ label ++ Text.plain "]"
-    else Text.plain " " ++ label ++ Text.plain " "
-  if focused then Text.styled body.plainText Style.reverse else body
+private def tabLabel (label : String) (color : Color) (selected focused : Bool) : Text :=
+  let body := if selected then Text.plain "[" ++ Text.plain label ++ Text.plain "]"
+    else Text.plain " " ++ Text.plain label ++ Text.plain " "
+  let style := Style.fg color <+> (if selected then Style.bold else Style.empty) <+>
+    (if focused then Style.reverse else Style.empty)
+  Text.styled (Text.plainText body) style
 
 private def boxesView : Text :=
-  let inner := Layout.box (Text.plain "nested content\nwith a title")
-    { maxWidth := some 22, title := some (Text.plain "inner") }
+  let inner := Layout.box (Text.styled "nested content\nwith a title" (Style.fg demoPalette.green))
+    { maxWidth := some 22
+      , title := some (Text.styled "inner" (Style.bold <+> Style.fg demoPalette.cyan))
+      , borderStyle := Style.fg demoPalette.comment }
   let outer := Layout.box inner
-    { maxWidth := some 36, title := some (Text.plain "nested") }
-  let first := Layout.box (Text.plain "first box")
-    { maxWidth := some 22, title := some (Text.plain "one") }
-  let second := Layout.box (Text.plain "second box")
-    { maxWidth := some 22, title := some (Text.plain "two") }
+    { maxWidth := some 36
+      , title := some (Text.styled "nested" (Style.bold <+> Style.fg demoPalette.purple))
+      , borderStyle := Style.fg demoPalette.foreground }
+  let first := Layout.box (Text.styled "first box" (Style.fg demoPalette.green))
+    { maxWidth := some 22
+      , title := some (Text.styled "one" (Style.fg demoPalette.cyan))
+      , borderStyle := Style.fg demoPalette.comment }
+  let second := Layout.box (Text.styled "second box" (Style.fg demoPalette.yellow))
+    { maxWidth := some 22
+      , title := some (Text.styled "two" (Style.fg demoPalette.cyan))
+      , borderStyle := Style.fg demoPalette.comment }
   let stacked := first ++ Text.plain "\n" ++ second
   let side := Layout.box stacked
-    { maxWidth := some 28, title := some (Text.plain "stacked") }
+    { maxWidth := some 28
+      , title := some (Text.styled "stacked" (Style.bold <+> Style.fg demoPalette.purple))
+      , borderStyle := Style.fg demoPalette.foreground }
   Layout.columns [36, 28] 2 [outer, side]
 
 private def aboutView : Text :=
-  Layout.box (Text.plain "Boxes are pure Text.\nTabs are app state.")
-    { maxWidth := some 48, title := some (Text.plain "about") }
+  Layout.box (Text.styled "Boxes are pure Text.\nTabs are app state." (Style.fg demoPalette.green))
+    { maxWidth := some 48
+      , title := some (Text.styled "about" (Style.bold <+> Style.fg demoPalette.cyan))
+      , borderStyle := Style.fg demoPalette.comment }
 
 private def focusCount (state : TuiState) : Nat :=
   if state.tab == 0 then 5 else 1
@@ -60,19 +79,23 @@ private def formView (state : TuiState) : Text :=
   let marker := fun (index : Nat) => Text.plain (if state.focus == index then "> " else "  ")
   marker 1 ++ renderTextInput nameConfig state.name (state.focus == 1) ++ Text.plain "\n" ++
     marker 2 ++ renderSlider sliderConfig state.volume ++ Text.plain "\n" ++
-    marker 3 ++ renderCheckbox { label := Text.plain "enabled" } state.enabled ++ Text.plain "\n" ++
-    marker 4 ++ renderButton (Text.plain "save") (state.focus == 4)
+    marker 3 ++
+      (renderCheckbox { label := Text.styled "enabled" (Style.fg demoPalette.green) } state.enabled) ++
+      Text.plain "\n" ++
+    marker 4 ++
+      (renderButton (Text.styled "save" (Style.fg demoPalette.purple)) (state.focus == 4))
 
 private def tuiView (state : TuiState) (showHelp : Bool := true) : Text :=
   let tabs := (if state.focus == 0 then Text.plain "> " else Text.plain "  ") ++
-    tabLabel (Text.plain "Form") (state.tab == 0) (state.focus == 0) ++
-    tabLabel (Text.plain "Boxes") (state.tab == 1) (state.focus == 0) ++
-    tabLabel (Text.plain "About") (state.tab == 2) (state.focus == 0)
+    tabLabel "Form" demoPalette.cyan (state.tab == 0) (state.focus == 0) ++
+    tabLabel "Boxes" demoPalette.purple (state.tab == 1) (state.focus == 0) ++
+    tabLabel "About" demoPalette.green (state.tab == 2) (state.focus == 0)
   let page := if state.tab == 0 then formView state
     else if state.tab == 1 then boxesView else aboutView
   let footer := if showHelp then
       Text.plain "\n\n" ++
-        Text.styled "Tab focus  •  Left/Right tabs or edit  •  Enter save  •  Esc quit" Style.dim
+        Text.styled "Tab focus  •  Left/Right tabs or edit  •  Enter save  •  Esc quit"
+          (Style.dim <+> Style.fg demoPalette.comment)
     else Text.empty
   tabs ++ Text.plain "\n" ++ page ++ footer
 
@@ -108,7 +131,8 @@ private def interactiveTui : IO Unit := do
       while !finished do
         clearScreen
         writeTextLine
-          (Text.styled "interactive TUI demo" Style.bold ++ Text.plain "\n" ++ tuiView state)
+          (Text.styled "interactive TUI demo" (Style.bold <+> Style.fg demoPalette.foreground) ++
+            Text.plain "\n" ++ tuiView state)
         match ← readKey with
         | none => finished := true
         | some key =>
@@ -126,26 +150,34 @@ private def liveDemo : IO Unit := do
     let mut region := LiveRegion.start
     let width ← terminalWidth
     for current in [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10] do
-      let labelStyle := if current == 10 then Style.green else Style.cyan
+      let labelStyle := if current == 10 then Style.fg demoPalette.green else Style.fg demoPalette.cyan
       let barWidth := max 10 (min 40 (max 1 (width - 20)))
-      let progress := progressBar { width := barWidth }
+      let progress := progressBar
+        { width := barWidth
+          , filledStyle := Style.fg demoPalette.blue
+          , emptyStyle := Style.dim <+> Style.fg demoPalette.comment
+          , percentageStyle := Style.fg demoPalette.foreground }
         { current, total := 10, label := Text.styled "download" labelStyle }
       let spinner := renderSpinner { prefixText := Text.plain "  " }
-        { frame := current, label := Text.plain "working" }
+        { frame := current, label := Text.styled "working" (Style.fg demoPalette.foreground) }
       region ← region.updateText (progress ++ Text.plain "\n" ++ spinner)
       IO.sleep 150
     let _ ← region.finish
-    let unknown := LiveIndeterminateProgress.start { width := 20, indeterminateWidth := 8 }
+    let unknown := LiveIndeterminateProgress.start
+      { width := 20, indeterminateWidth := 8
+        , filledStyle := Style.fg demoPalette.cyan
+        , emptyStyle := Style.dim <+> Style.fg demoPalette.comment }
     let mut unknown := unknown
     for frame in List.range 25 do
       unknown ← unknown.update
-        { frame, label := Text.styled "indexing (unknown)" Style.cyan }
+        { frame, label := Text.styled "indexing (unknown)" (Style.fg demoPalette.cyan) }
       IO.sleep 150
     let _ ← unknown.finish
     let status := LiveStatus.start
-    let status ← status.update .warning (Text.plain "using a fallback")
+    let status ← status.update .warning
+      (Text.styled "using a fallback" (Style.fg demoPalette.yellow))
     IO.sleep 150
-    let _ ← status.update .success (Text.plain "ready")
+    let _ ← status.update .success (Text.styled "ready" (Style.fg demoPalette.green))
     let _ ← status.finish
   finally
     showCursor
@@ -156,11 +188,13 @@ private def liveRegionDemo : IO Unit := do
   try
     let table := LiveTable.start [12, 10]
     let table ← table.update
-      [[Text.styled "task" Style.bold, Text.styled "status" Style.bold],
-       [Text.plain "download", Text.styled "running" Style.yellow]]
+      [[Text.styled "task" (Style.bold <+> Style.fg demoPalette.purple)
+        , Text.styled "status" (Style.bold <+> Style.fg demoPalette.purple)],
+       [Text.plain "download", Text.styled "running" (Style.fg demoPalette.yellow)]]
     let _ ← table.update
-      [[Text.styled "task" Style.bold, Text.styled "status" Style.bold],
-       [Text.plain "download", Text.styled "done" Style.green]]
+      [[Text.styled "task" (Style.bold <+> Style.fg demoPalette.purple)
+        , Text.styled "status" (Style.bold <+> Style.fg demoPalette.purple)],
+       [Text.plain "download", Text.styled "done" (Style.fg demoPalette.green)]]
     let _ ← table.finish
   finally
     showCursor
@@ -202,9 +236,12 @@ def main : IO Unit := do
   else
     IO.println "live objects: skipped because stdout is not a terminal"
   writeTextLine (Layout.box
-    (renderTable [14, 10] [[Text.styled "library" Style.bold, Text.styled "role" Style.bold],
+    (renderTable [14, 10]
+      [[Text.styled "library" (Style.bold <+> Style.fg demoPalette.purple)
+        , Text.styled "role" (Style.bold <+> Style.fg demoPalette.purple)],
       [Text.plain "termcolor", Text.plain "styles"],
       [Text.plain "layout", Text.plain "width"],
       [Text.plain "widgets", Text.plain "views"],
       [Text.plain "terminal", Text.plain "live IO"]])
-    { title := some (Text.plain "stack") })
+    { title := some (Text.styled "stack" (Style.bold <+> Style.fg demoPalette.cyan))
+      , borderStyle := Style.fg demoPalette.comment })
