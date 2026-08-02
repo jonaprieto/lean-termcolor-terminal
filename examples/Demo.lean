@@ -63,15 +63,18 @@ private def formView (state : TuiState) : Text :=
     marker 3 ++ renderCheckbox { label := Text.plain "enabled" } state.enabled ++ Text.plain "\n" ++
     marker 4 ++ renderButton (Text.plain "save") (state.focus == 4)
 
-private def tuiView (state : TuiState) : Text :=
+private def tuiView (state : TuiState) (showHelp : Bool := true) : Text :=
   let tabs := (if state.focus == 0 then Text.plain "> " else Text.plain "  ") ++
     tabLabel (Text.plain "Form") (state.tab == 0) (state.focus == 0) ++
     tabLabel (Text.plain "Boxes") (state.tab == 1) (state.focus == 0) ++
     tabLabel (Text.plain "About") (state.tab == 2) (state.focus == 0)
   let page := if state.tab == 0 then formView state
     else if state.tab == 1 then boxesView else aboutView
-  tabs ++ Text.plain "\n" ++ page ++ Text.plain "\n\n" ++
-    Text.styled "Tab focus  •  Left/Right tabs or edit  •  Enter save  •  Esc quit" Style.dim
+  let footer := if showHelp then
+      Text.plain "\n\n" ++
+        Text.styled "Tab focus  •  Left/Right tabs or edit  •  Enter save  •  Esc quit" Style.dim
+    else Text.empty
+  tabs ++ Text.plain "\n" ++ page ++ footer
 
 private def applyControlKey (state : TuiState) (key : Key) : TuiState × Bool :=
   if state.tab != 0 then
@@ -189,10 +192,10 @@ def main : IO Unit := do
       interactiveTui
     catch _ =>
       IO.println "interactive input unavailable; showing static preview"
-      writeTextLine (tuiView { tab := 1 })
+      writeTextLine (tuiView { tab := 1 } false)
   else
     IO.println "static TUI preview (use a capable TTY for direct-key interaction):"
-    writeTextLine (tuiView { tab := 1 })
+    writeTextLine (tuiView { tab := 1 } false)
   if liveEnabled then
     liveDemo
     liveRegionDemo
