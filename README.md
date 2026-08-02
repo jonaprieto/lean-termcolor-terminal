@@ -55,6 +55,9 @@ lake exe demo
 ```
 
 The separate `TermColor.Terminal.Properties` library machine-checks the pure sequence and live-object laws.
+`scripts/check-axioms.py` reports the axioms every one of them depends on and fails the build on
+anything unexpected. Laws proved by `native_decide` trust the compiler rather than the kernel, so each
+is named in an explicit allowlist instead of passing unnoticed.
 Most proofs use kernel `decide`; size parsing and string-heavy redraw cases use `native_decide` because
 Lean 4.28 does not reduce those strings in the kernel. CI checks that allowlisted axiom footprint.
 Raw keyboard mode and a full-screen retained buffer are intentionally outside this small live output layer.
