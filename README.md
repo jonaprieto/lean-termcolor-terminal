@@ -33,6 +33,13 @@ cursor escape sequences. `stdoutSupportsControl` exposes the same policy to call
 `termcolor-widgets` to those live updates. Styled text is rendered through `TermColor.Detect`,
 while `termcolor-layout` supplies width-aware boxes, columns, and the default terminal width.
 
+## TUI input core
+
+`parseKey` decodes complete arrow, Enter, Tab, Escape, Backspace, and character sequences into the
+pure `termcolor-widgets` `Key` type. `moveFocus` wraps an ordered set of application-owned focus
+slots. The first milestone intentionally leaves raw-mode setup and incremental escape buffering to
+the application boundary.
+
 ## Terminal behavior
 
 The live path uses ANSI/VT control sequences on capable TTYs. It degrades to newline-separated

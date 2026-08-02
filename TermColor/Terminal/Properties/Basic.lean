@@ -24,6 +24,23 @@ theorem terminal_control_rejects_dumb : !terminalControlAllowed true (some "dumb
 theorem terminal_control_allows_declared_tty :
     terminalControlAllowed true (some "xterm") := by decide
 
+theorem parse_key_sequences :
+    parseKey "\u001b[A" = some .up ∧
+      parseKey "\u001b[D" = some .left ∧
+      parseKey "\r" = some .enter ∧
+      parseKey "\u007f" = some .backspace := by
+  decide
+
+theorem parse_key_char_and_reject_partial_sequence :
+    parseKey "x" = some (.char 'x') ∧ parseKey "\u001b[" = none := by
+  decide
+
+theorem focus_wraps :
+    moveFocus 3 2 .tab = 0 ∧
+      moveFocus 3 0 .left = 2 ∧
+      moveFocus 0 4 .tab = 0 := by
+  decide
+
 theorem cursor_to_column_is_one_based : cursorToColumnSequence 0 = "\u001b[1G" := by decide
 
 theorem clear_line_sequence : clearLineSequence = "\u001b[2K\r" := by decide

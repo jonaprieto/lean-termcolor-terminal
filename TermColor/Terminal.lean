@@ -5,6 +5,7 @@ Authors: Jonathan Prieto-Cubides
 -/
 
 import TermColor.Terminal.Basic
+import TermColor.Terminal.Input
 
 /-!
 # termcolor-terminal

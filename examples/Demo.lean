@@ -14,6 +14,18 @@ open TermColor.Widgets
 private def showSequence (label sequence : String) : IO Unit :=
   IO.println s!"{label}: {repr sequence}"
 
+private def tuiPreview : Text :=
+  let nameConfig : TextInputConfig :=
+    { width := 16, maxLength := 16, label := Text.plain "name: " }
+  let name := updateTextInput nameConfig (.char 'L') {}
+  let name := updateTextInput nameConfig (.char 'e') name
+  let name := updateTextInput nameConfig (.char 'a') name
+  renderTextInput nameConfig name true ++ Text.plain "\n" ++
+    renderSlider { width := 12, label := Text.plain "volume: " } { value := 7 } ++
+    Text.plain "\n" ++
+    renderCheckbox { label := Text.plain "enabled" } { checked := true } ++ Text.plain "\n" ++
+    renderButton (Text.plain "save") true
+
 private def liveDemo : IO Unit := do
   IO.println "live progress and spinner:"
   hideCursor
@@ -76,6 +88,8 @@ def main : IO Unit := do
   match ← terminalSize with
   | some size => IO.println s!"terminal size: {size.columns} columns x {size.rows} rows"
   | none => IO.println "terminal size: unavailable"
+  IO.println "pure TUI control preview:"
+  writeTextLine tuiPreview
   if ← stdoutIsTty then
     liveDemo
     liveRegionDemo
