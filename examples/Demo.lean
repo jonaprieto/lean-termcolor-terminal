@@ -14,17 +14,66 @@ open TermColor.Widgets
 private def showSequence (label sequence : String) : IO Unit :=
   IO.println s!"{label}: {repr sequence}"
 
+private def nameConfig : TextInputConfig :=
+  { width := 16, maxLength := 16, label := Text.plain "name: " }
+
+private def sliderConfig : SliderConfig :=
+  { width := 12, label := Text.plain "volume: " }
+
 private def tuiPreview : Text :=
-  let nameConfig : TextInputConfig :=
-    { width := 16, maxLength := 16, label := Text.plain "name: " }
   let name := updateTextInput nameConfig (.char 'L') {}
   let name := updateTextInput nameConfig (.char 'e') name
   let name := updateTextInput nameConfig (.char 'a') name
   renderTextInput nameConfig name true ++ Text.plain "\n" ++
-    renderSlider { width := 12, label := Text.plain "volume: " } { value := 7 } ++
+    renderSlider sliderConfig { value := 7 } ++
     Text.plain "\n" ++
     renderCheckbox { label := Text.plain "enabled" } { checked := true } ++ Text.plain "\n" ++
     renderButton (Text.plain "save") true
+
+private structure TuiState where
+  name : TextInputState := {}
+  volume : SliderState := { value := 5 }
+  enabled : CheckboxState := {}
+  focus : Nat := 0
+
+private def tuiView (state : TuiState) : Text :=
+  let marker := fun (index : Nat) => Text.plain (if state.focus == index then "> " else "  ")
+  marker 0 ++ renderTextInput nameConfig state.name (state.focus == 0) ++ Text.plain "\n" ++
+    marker 1 ++ renderSlider sliderConfig state.volume ++ Text.plain "\n" ++
+    marker 2 ++ renderCheckbox { label := Text.plain "enabled" } state.enabled ++ Text.plain "\n" ++
+    marker 3 ++ renderButton (Text.plain "save") (state.focus == 3) ++ Text.plain "\n" ++
+    Text.styled "Tab focus  •  arrows edit  •  Enter save  •  Esc quit" Style.dim
+
+private def applyTuiKey (state : TuiState) (key : Key) : TuiState × Bool :=
+  match key with
+  | .tab => ({ state with focus := (state.focus + 1) % 4 }, false)
+  | .escape => (state, true)
+  | _ =>
+      match state.focus with
+      | 0 => ({ state with name := updateTextInput nameConfig key state.name }, false)
+      | 1 => ({ state with volume := updateSlider sliderConfig key state.volume }, false)
+      | 2 => ({ state with enabled := updateCheckbox key state.enabled }, false)
+      | _ => (state, buttonActivated key)
+
+private def interactiveTui : IO Unit := do
+  hideCursor
+  try
+    withRawInput do
+      let mut state : TuiState := {}
+      let mut finished := false
+      while !finished do
+        clearScreen
+        writeTextLine
+          (Text.styled "interactive TUI demo" Style.bold ++ Text.plain "\n" ++ tuiView state)
+        match ← readKey with
+        | none => finished := true
+        | some key =>
+            let (next, activated) := applyTuiKey state key
+            state := next
+            finished := activated
+  finally
+    showCursor
+    clearScreen
 
 private def liveDemo : IO Unit := do
   IO.println "live progress and spinner:"
@@ -88,9 +137,16 @@ def main : IO Unit := do
   match ← terminalSize with
   | some size => IO.println s!"terminal size: {size.columns} columns x {size.rows} rows"
   | none => IO.println "terminal size: unavailable"
-  IO.println "pure TUI control preview:"
-  writeTextLine tuiPreview
-  if ← stdoutIsTty then
+  let outputTty ← stdoutIsTty
+  let inputTty ← stdinIsTty
+  let inCi := (← IO.getEnv "CI").isSome
+  let forcedNonInteractive := (← IO.getEnv "TERMCOLOR_TERMINAL_NONINTERACTIVE").isSome
+  if outputTty && inputTty && !inCi && !forcedNonInteractive then
+    interactiveTui
+  else
+    IO.println "static TUI control preview (use a TTY for direct-key interaction):"
+    writeTextLine tuiPreview
+  if outputTty then
     liveDemo
     liveRegionDemo
   else

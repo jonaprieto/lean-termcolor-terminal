@@ -39,9 +39,9 @@ uses this terminal layer for command help and completion output.
 ## TUI input core
 
 `parseKey` decodes complete arrow, Enter, Tab, Escape, Backspace, and character sequences into the
-pure `termcolor-widgets` `Key` type. `moveFocus` wraps an ordered set of application-owned focus
-slots. The first milestone intentionally leaves raw-mode setup and incremental escape buffering to
-the application boundary.
+pure `termcolor-widgets` `Key` type. `readKey` reads the same keys directly from a TTY, while
+`withRawInput` scopes character-at-a-time mode and restores the previous terminal settings.
+`moveFocus` wraps an ordered set of application-owned focus slots.
 
 ## Terminal behavior
 
@@ -52,8 +52,10 @@ available.
 
 ## Demo
 
-Run the demo from an interactive terminal to see live redraws for a completed progress bar, an
-unknown-progress bar, a spinner, status messages, and a multi-line table region.
+Run the demo from an interactive terminal to enter the direct-key TUI first: `Tab` moves focus,
+arrow keys edit controls, `Enter` activates Save, and `Esc` exits. It then continues with live
+progress, spinner, status, and table examples. Non-TTY, CI, and forced non-interactive runs show a
+static control preview instead.
 
 ![termcolor-terminal demo output](assets/demo.png)
 
@@ -70,7 +72,8 @@ anything unexpected. Laws proved by `native_decide` trust the compiler rather th
 is named in an explicit allowlist instead of passing unnoticed.
 Most proofs use kernel `decide`; size parsing and string-heavy redraw cases use `native_decide` because
 Lean 4.28 does not reduce those strings in the kernel. CI checks that allowlisted axiom footprint.
-Raw keyboard mode and a full-screen retained buffer are intentionally outside this small live output layer.
+Force the static demo with `TERMCOLOR_TERMINAL_NONINTERACTIVE=1 lake exe demo`. A full-screen retained
+buffer remains outside this small live output layer.
 
 ## License
 
