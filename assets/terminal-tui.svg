@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 620" role="img" aria-labelledby="title desc">
+  <title id="title">termcolor-terminal interactive TUI preview</title>
+  <desc id="desc">A static preview of the terminal library's tabbed form, boxes, and about views.</desc>
+  <rect width="1200" height="620" rx="20" fill="#1e1e2e"/>
+  <rect width="1200" height="58" rx="20" fill="#292b3b"/><rect y="38" width="1200" height="20" fill="#292b3b"/>
+  <circle cx="32" cy="29" r="8" fill="#f38ba8"/><circle cx="58" cy="29" r="8" fill="#f9e2af"/><circle cx="84" cy="29" r="8" fill="#a6e3a1"/>
+  <text x="116" y="36" fill="#cba6f7" font-family="SFMono-Regular,Menlo,monospace" font-size="20" font-weight="700">termcolor-terminal · interactive TUI</text>
+  <rect x="40" y="92" width="1120" height="470" rx="16" fill="#181825" stroke="#45475a" stroke-width="2"/>
+  <text x="72" y="140" fill="#cdd6f4" font-family="SFMono-Regular,Menlo,monospace" font-size="28" font-weight="700">&gt; [Form]  Boxes   About</text>
+  <text x="72" y="174" fill="#6c7086" font-family="SFMono-Regular,Menlo,monospace" font-size="15">Tab focus · Left/Right tabs or edit · Enter save · Esc quit</text>
+  <rect x="72" y="206" width="520" height="260" rx="12" fill="#1e1e2e" stroke="#6c7086" stroke-width="2"/>
+  <text x="98" y="246" fill="#cba6f7" font-family="SFMono-Regular,Menlo,monospace" font-size="17" font-weight="700">form</text>
+  <text x="98" y="290" fill="#94e2d5" font-family="SFMono-Regular,Menlo,monospace" font-size="19">&gt; name: </text><rect x="220" y="266" width="300" height="34" rx="5" fill="#292b3b" stroke="#94e2d5"/><text x="238" y="290" fill="#cdd6f4" font-family="SFMono-Regular,Menlo,monospace" font-size="19">Lean│</text>
+  <text x="98" y="336" fill="#89b4fa" font-family="SFMono-Regular,Menlo,monospace" font-size="19">  volume: [━━━━━━──────]</text>
+  <text x="98" y="382" fill="#a6e3a1" font-family="SFMono-Regular,Menlo,monospace" font-size="19">  [x] enabled</text>
+  <rect x="98" y="412" width="120" height="38" rx="5" fill="#cba6f7"/><text x="128" y="438" fill="#1e1e2e" font-family="SFMono-Regular,Menlo,monospace" font-size="18" font-weight="700">save</text>
+  <text x="650" y="246" fill="#cba6f7" font-family="SFMono-Regular,Menlo,monospace" font-size="17" font-weight="700">boxes</text>
+  <rect x="650" y="268" width="430" height="150" fill="none" stroke="#6c7086" stroke-width="2"/>
+  <text x="678" y="260" fill="#cba6f7" font-family="SFMono-Regular,Menlo,monospace" font-size="16" font-weight="700">┌─ nested ───────────────────┐</text>
+  <text x="678" y="310" fill="#a6e3a1" font-family="SFMono-Regular,Menlo,monospace" font-size="17">│ ┌─ inner ────────────────┐ │</text>
+  <text x="678" y="344" fill="#a6e3a1" font-family="SFMono-Regular,Menlo,monospace" font-size="17">│ │ nested content        │ │</text>
+  <text x="678" y="378" fill="#a6e3a1" font-family="SFMono-Regular,Menlo,monospace" font-size="17">│ └────────────────────────┘ │</text>
+  <text x="678" y="412" fill="#cdd6f4" font-family="SFMono-Regular,Menlo,monospace" font-size="17">└────────────────────────────┘</text>
+  <text x="72" y="526" fill="#6c7086" font-family="SFMono-Regular,Menlo,monospace" font-size="16">raw input, focus, terminal sizing, and redraw policy remain outside pure widgets</text>
+</svg>

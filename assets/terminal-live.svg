@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 500" role="img" aria-labelledby="title desc">
+  <title id="title">termcolor-terminal live regions</title>
+  <desc id="desc">Terminal-backed progress, spinner, status, and live table updates.</desc>
+  <rect width="1200" height="500" rx="20" fill="#181825"/>
+  <text x="48" y="62" fill="#cdd6f4" font-family="SFMono-Regular,Menlo,monospace" font-size="28" font-weight="700">Live regions · readable when redirected</text>
+  <text x="48" y="94" fill="#a6adc8" font-family="SFMono-Regular,Menlo,monospace" font-size="17">capable TTYs redraw; pipes and CI receive newline-separated snapshots</text>
+  <rect x="40" y="128" width="1120" height="300" rx="16" fill="#1e1e2e" stroke="#45475a" stroke-width="2"/>
+  <text x="72" y="180" fill="#94e2d5" font-family="SFMono-Regular,Menlo,monospace" font-size="21">download</text><text x="255" y="180" fill="#cdd6f4" font-family="SFMono-Regular,Menlo,monospace" font-size="21">[</text><rect x="278" y="161" width="480" height="20" rx="5" fill="#45475a"/><rect x="278" y="161" width="480" height="20" rx="5" fill="#a6e3a1"/><text x="780" y="180" fill="#cdd6f4" font-family="SFMono-Regular,Menlo,monospace" font-size="21">] 100%</text>
+  <text x="72" y="226" fill="#94e2d5" font-family="SFMono-Regular,Menlo,monospace" font-size="21">⠸ working</text>
+  <text x="72" y="272" fill="#a6e3a1" font-family="SFMono-Regular,Menlo,monospace" font-size="21">[ok]</text><text x="150" y="272" fill="#cdd6f4" font-family="SFMono-Regular,Menlo,monospace" font-size="21">ready</text>
+  <text x="72" y="338" fill="#cba6f7" font-family="SFMono-Regular,Menlo,monospace" font-size="18" font-weight="700">task             status       time</text>
+  <text x="72" y="374" fill="#cdd6f4" font-family="SFMono-Regular,Menlo,monospace" font-size="18">download         <tspan fill="#a6e3a1">done</tspan>        2.1s</text>
+  <text x="72" y="410" fill="#cdd6f4" font-family="SFMono-Regular,Menlo,monospace" font-size="18">compile          <tspan fill="#f9e2af">running</tspan>    …</text>
+  <text x="790" y="338" fill="#6c7086" font-family="SFMono-Regular,Menlo,monospace" font-size="16">LiveRegion</text>
+  <text x="790" y="370" fill="#cdd6f4" font-family="SFMono-Regular,Menlo,monospace" font-size="16">cursor control only</text>
+  <text x="790" y="402" fill="#cdd6f4" font-family="SFMono-Regular,Menlo,monospace" font-size="16">when stdout supports it</text>
+</svg>
