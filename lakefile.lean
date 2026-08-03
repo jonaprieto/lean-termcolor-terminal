@@ -2,15 +2,15 @@ import Lake
 open Lake DSL
 
 package «termcolor-terminal» where
-  version := v!"0.1.2"
+  version := v!"0.1.3"
   leanOptions := #[⟨`autoImplicit, false⟩, ⟨`relaxedAutoImplicit, false⟩]
 
 require «termcolor» from git
-  "https://github.com/jonaprieto/lean-termcolor.git" @ "90d49ed"
+  "https://github.com/jonaprieto/lean-termcolor.git" @ "f0c0cef"
 
 require «termcolor-layout» from git
   "https://github.com/jonaprieto/lean-termcolor-layout.git"
-  @ "8cf89d9"
+  @ "3b99871"
 
 require «termcolor-widgets» from git
   "https://github.com/jonaprieto/lean-termcolor-widgets.git"
