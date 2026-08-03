@@ -7,7 +7,7 @@ package «termcolor-terminal» where
 
 require «termcolor» from git
   "https://github.com/jonaprieto/lean-termcolor.git"
-  @ "ac9a102562fa65435365758cf5fe5ac95c6a7a92"
+  @ "7c00b61"
 
 require «termcolor-layout» from git
   "https://github.com/jonaprieto/lean-termcolor-layout.git"
