@@ -59,10 +59,6 @@ boxes arranged with `Layout.columns`. The demo then continues with live progress
 and table examples. Non-TTY, CI, and forced non-interactive runs show a static control preview and
 skip live animations.
 
-![termcolor-terminal interactive TUI](assets/terminal-tui.svg)
-
-![termcolor-terminal live regions](assets/terminal-live.svg)
-
 Build and run the demo:
 
 ```sh
