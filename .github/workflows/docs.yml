@@ -41,8 +41,9 @@ jobs:
           restore-keys: lake-docs-${{ runner.os }}-
       - name: Install elan
         run: |
+          set -euo pipefail
           if [ ! -x "$HOME/.elan/bin/elan" ]; then
-            curl https://raw.githubusercontent.com/elanprover/elan/master/elan-init.sh -sSf \
+            curl https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -sSf \
               | sh -s -- -y --default-toolchain none
           fi
           echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
