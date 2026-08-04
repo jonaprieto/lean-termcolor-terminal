@@ -7,15 +7,15 @@ package «termcolor-terminal» where
 
 require «termcolor» from git
   "https://github.com/jonaprieto/lean-termcolor.git"
-  @ "7c00b61"
+  @ "0d5a6ba9ac64912a91fd724eb986a18fc0793b98"
 
 require «termcolor-layout» from git
   "https://github.com/jonaprieto/lean-termcolor-layout.git"
-  @ "d45b699afecb7cca8328778b1f7cc6a793b43dcd"
+  @ "56dfeb9bfc906c20ba79d2c9b0ab95152d532f0a"
 
 require «termcolor-widgets» from git
   "https://github.com/jonaprieto/lean-termcolor-widgets.git"
-  @ "83785c7f7a29267a170029f442a02e1063abee10"
+  @ "2ca626cc4e49bdd3eab07b0e4aa8b44129aff19d"
 
 @[default_target]
 lean_lib «TermColor.Terminal» where

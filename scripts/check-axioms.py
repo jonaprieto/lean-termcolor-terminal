@@ -23,6 +23,13 @@ native = {
     "live_region_redraws_single_line",
 }
 
+
+def is_native_decide_axiom(decl, axiom):
+    """Since Lean v4.29, `native_decide` names its axiom after the declaration it
+    closes (`<decl>._native.native_decide.ax_1_1`) instead of reusing
+    `Lean.ofReduceBool`. Accept it for the declarations already allowed to use it."""
+    return decl in native and "._native.native_decide.ax" in axiom
+
 outputs = []
 # One command only. `lake env lean` on a loose file resolved the shared `TermColor.`
 # prefix into the termcolor dependency's build directory and could not find this
@@ -56,9 +63,11 @@ for line in "\n".join(outputs).splitlines():
         if "]" not in line:
             continue
     if current and block and "]" in "".join(block):
-        axioms = set(re.findall(r"[A-Za-z][A-Za-z0-9.]*", "".join(block)))
+        joined = "".join(block)
+        axioms = {a.strip() for a in joined[: joined.index("]")].strip(" [").split(",")}
+        axioms.discard("")
         permitted = allowed | (native_axioms if current in native else set())
-        unexpected = axioms - permitted
+        unexpected = {a for a in axioms - permitted if not is_native_decide_axiom(current, a)}
         if unexpected:
             failures.append((current, unexpected))
         current = None
