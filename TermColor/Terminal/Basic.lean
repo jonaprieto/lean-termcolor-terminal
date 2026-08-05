@@ -13,8 +13,9 @@ import TermColor.Widgets
 
 The sequence builders are pure values. The IO helpers write to stdout and flush explicitly. Cursor
 controls are disabled for redirected output and `TERM=dumb`/`TERM=unknown`; live objects fall back
-to newline-separated snapshots in that mode. Live-region width is cached after its first query.
-Size detection is best effort: it honors
+to newline-separated snapshots in that mode. Live-region width follows the terminal on each
+default-width update; callers can pin it with `updateTextAtWidth`. Size detection is best effort:
+it honors
 `COLUMNS`/`LINES`, then tries `stty size` through `/dev/tty` on macOS and Linux.
 -/
 
@@ -239,18 +240,24 @@ def update (state : LiveRegion) (text : String) : IO LiveRegion := do
     flush
     pure { state with lineCount := visibleLineCount text }
 
+private def renderTextAtWidth (width : Nat) (text : Text) (choice : ColorChoice) : IO String := do
+  TermColor.render (Layout.wrapLines width text) choice
+
 /-- Render styled text at a supplied width, redraw a multi-line region, and flush stdout. -/
 def updateTextAtWidth (state : LiveRegion) (width : Nat) (text : Text)
     (choice : ColorChoice := .auto) : IO LiveRegion := do
-  (state.setWidth width).update (← TermColor.render (Layout.wrapLines width text) choice)
+  (state.setWidth width).update (← renderTextAtWidth width text choice)
 
-/-- Render styled text at the current terminal width, redraw the region, and flush stdout. -/
+/-- Render styled text at the current terminal width, redraw the region, and flush stdout.
+
+When the region has no explicit width, the terminal is queried for every update so live output
+can reflow after a window resize. -/
 def updateText (state : LiveRegion) (text : Text)
     (choice : ColorChoice := .auto) : IO LiveRegion := do
   let width ← match state.width with
     | some width => pure width
     | none => terminalWidth
-  state.updateTextAtWidth width text choice
+  state.update (← renderTextAtWidth width text choice)
 
 /-- Leave the live region in place and move to the next line. -/
 def finish (state : LiveRegion) : IO LiveRegion := do

@@ -149,8 +149,8 @@ private def liveDemo : IO Unit := do
   hideCursor
   try
     let mut region := LiveRegion.start
-    let width ← terminalWidth
     for current in [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10] do
+      let width ← terminalWidth
       let labelStyle :=
         if current == 10 then Style.fg demoPalette.green else Style.fg demoPalette.cyan
       let barWidth := max 10 (min 40 (max 1 (width - 20)))

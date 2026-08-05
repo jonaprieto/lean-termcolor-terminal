@@ -28,7 +28,7 @@ Cursor-control helpers are no-ops when stdout is redirected or `TERM` is `dumb`/
 Live objects use newline-separated snapshots in that mode, so pipes and CI logs do not receive
 cursor escape sequences. `stdoutSupportsControl` exposes the same policy to callers.
 
-`LiveRegion` redraws a one- or multi-line `Text` value at a cached terminal width, and `LiveProgress`,
+`LiveRegion` redraws a one- or multi-line `Text` value at the current terminal width, and `LiveProgress`,
 `LiveSpinner`, `LiveIndeterminateProgress`, `LiveStatus`, and `LiveTable` connect
 [`termcolor-widgets`](https://github.com/jonaprieto/lean-termcolor-widgets) to those live updates.
 Styled text is rendered through `TermColor.Detect`, while
@@ -48,7 +48,9 @@ pure `termcolor-widgets` `Key` type. `readKey` reads the same keys directly from
 The live path uses ANSI/VT control sequences on capable TTYs. It degrades to newline-separated
 snapshots for pipes, CI logs, `TERM=dumb`, and `TERM=unknown`, keeping redirected output readable
 and free of cursor escapes. Terminal sizing uses `COLUMNS` and `LINES` first, then `/dev/tty` where
-available.
+available. Live regions re-query the terminal width on each default-width update, so periodic
+progress and spinner updates reflow after a window resize. Use `updateTextAtWidth` when a fixed
+width is required.
 
 ## Demo
 
