@@ -21,8 +21,8 @@ def main : IO Unit := do
   let _ ← region.finish
 ```
 
-`terminalSize` first honors `COLUMNS` and `LINES`. If those are unavailable, it invokes `stty size`
-through `/dev/tty` on macOS/Linux and returns `none` when no terminal size is available.
+`terminalSize` queries the current `/dev/tty` size first. If no TTY is available, it falls back to
+`COLUMNS` and `LINES`, returning `none` when no terminal size is available.
 
 Cursor-control helpers are no-ops when stdout is redirected or `TERM` is `dumb`/`unknown`.
 Live objects use newline-separated snapshots in that mode, so pipes and CI logs do not receive
@@ -47,10 +47,10 @@ pure `termcolor-widgets` `Key` type. `readKey` reads the same keys directly from
 
 The live path uses ANSI/VT control sequences on capable TTYs. It degrades to newline-separated
 snapshots for pipes, CI logs, `TERM=dumb`, and `TERM=unknown`, keeping redirected output readable
-and free of cursor escapes. Terminal sizing uses `COLUMNS` and `LINES` first, then `/dev/tty` where
-available. Live regions re-query the terminal width on each default-width update, so periodic
-progress and spinner updates reflow after a window resize. Use `updateTextAtWidth` when a fixed
-width is required.
+and free of cursor escapes. Terminal sizing uses the current `/dev/tty` dimensions first and
+`COLUMNS`/`LINES` as the non-TTY fallback. Live regions re-query the terminal width on each
+default-width update, so periodic progress and spinner updates reflow after a window resize. Use
+`updateTextAtWidth` when a fixed width is required.
 
 ## Demo
 

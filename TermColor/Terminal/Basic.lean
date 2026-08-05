@@ -15,8 +15,7 @@ The sequence builders are pure values. The IO helpers write to stdout and flush 
 controls are disabled for redirected output and `TERM=dumb`/`TERM=unknown`; live objects fall back
 to newline-separated snapshots in that mode. Live-region width follows the terminal on each
 default-width update; callers can pin it with `updateTextAtWidth`. Size detection is best effort:
-it honors
-`COLUMNS`/`LINES`, then tries `stty size` through `/dev/tty` on macOS and Linux.
+it queries `/dev/tty` for the current TTY size, then falls back to `COLUMNS`/`LINES`.
 -/
 
 namespace TermColor
@@ -161,8 +160,8 @@ private def environmentSize (columns rows : Option String) : Option Size := do
   pure { columns, rows }
 
 private def sttySize : IO (Option Size) := do
-  -- ponytail: a fixed `stty` subprocess keeps this portable; add termios FFI when raw mode or
-  -- low-latency resize polling becomes a requirement.
+  -- ponytail: a fixed `stty` subprocess keeps this portable; add termios FFI only if signal-driven
+  -- resize notifications become a requirement.
   try
     let output ← IO.Process.output {
       cmd := "sh"
@@ -176,10 +175,10 @@ private def sttySize : IO (Option Size) := do
 
 /-- Query terminal dimensions, returning `none` when no size can be determined. -/
 def terminalSize : IO (Option Size) := do
-  let environment := environmentSize (← IO.getEnv "COLUMNS") (← IO.getEnv "LINES")
-  match environment with
+  match ← sttySize with
   | some size => pure (some size)
-  | none => sttySize
+  | none =>
+    pure (environmentSize (← IO.getEnv "COLUMNS") (← IO.getEnv "LINES"))
 
 /-- Query terminal width, falling back to the layout library's default width. -/
 def terminalWidth : IO Nat := do
