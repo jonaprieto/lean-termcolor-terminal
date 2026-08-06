@@ -145,7 +145,7 @@ private def interactiveTui : IO Unit := do
     clearScreen
 
 private def liveDemo : IO Unit := do
-  IO.println "live progress and spinner:"
+  IO.println "live progress, spinner, and shimmer:"
   hideCursor
   try
     let mut region := LiveRegion.start
@@ -175,6 +175,17 @@ private def liveDemo : IO Unit := do
         { frame, label := Text.styled "indexing (unknown)" (Style.fg demoPalette.cyan) }
       IO.sleep 150
     let _ ← unknown.finish
+    let thinking := Text.styled "Thinking..." (Style.fg demoPalette.foreground)
+    let shimmerConfig : ShimmerConfig := { band := 4 }
+    if ← stdoutSupportsControl then
+      let mut live := LiveShimmer.start thinking shimmerConfig
+      for _ in List.range 24 do
+        live ← live.tick
+        IO.sleep 80
+      let _ ← live.finish
+    else
+      -- `tick` is inactive without cursor control, so show one frame instead of nothing.
+      writeTextLine (Widgets.shimmer shimmerConfig { frame := 6 } thinking)
     let status := LiveStatus.start
     let status ← status.update .warning
       (Text.styled "using a fallback" (Style.fg demoPalette.yellow))

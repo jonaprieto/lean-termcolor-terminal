@@ -365,6 +365,43 @@ def finish (live : LiveSpinner) : IO LiveSpinner := do
 
 end LiveSpinner
 
+/-- A live shimmer driven by `termcolor-widgets`. -/
+structure LiveShimmer where
+  private region : LiveRegion
+  config : Widgets.ShimmerConfig
+  message : Text
+  state : Widgets.ShimmerState := {}
+
+namespace LiveShimmer
+
+/-- Start an inactive live shimmer for a message. -/
+def start (message : Text) (config : Widgets.ShimmerConfig := {}) : LiveShimmer :=
+  { region := LiveRegion.start, config, message }
+
+/-- The current pure shimmer view. -/
+def view (live : LiveShimmer) : Text :=
+  Widgets.shimmer live.config live.state live.message
+
+/-- Render and display the supplied shimmer state. -/
+def update (live : LiveShimmer) (state : Widgets.ShimmerState)
+    (choice : ColorChoice := .auto) : IO LiveShimmer := do
+  let region ← live.region.updateText (Widgets.shimmer live.config state live.message) choice
+  pure { live with region, state }
+
+/-- Advance and display a live shimmer. This is inactive without cursor control. -/
+def tick (live : LiveShimmer) (choice : ColorChoice := .auto) : IO LiveShimmer := do
+  if ← stdoutSupportsControl then
+    live.update { live.state with frame := live.state.frame + 1 } choice
+  else
+    pure live
+
+/-- Finish a live shimmer. -/
+def finish (live : LiveShimmer) : IO LiveShimmer := do
+  let region ← live.region.finish
+  pure { live with region }
+
+end LiveShimmer
+
 /-- A live status message driven by `termcolor-widgets`. -/
 structure LiveStatus where
   private region : LiveRegion

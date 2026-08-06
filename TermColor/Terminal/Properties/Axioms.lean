@@ -38,5 +38,6 @@ to find this package's oleans.
 #print axioms TermColor.Terminal.live_progress_uses_widgets
 #print axioms TermColor.Terminal.live_indeterminate_progress_uses_widgets
 #print axioms TermColor.Terminal.live_spinner_uses_widgets
+#print axioms TermColor.Terminal.live_shimmer_uses_widgets
 #print axioms TermColor.Terminal.live_status_uses_widgets
 #print axioms TermColor.Terminal.live_table_uses_widgets

@@ -17,6 +17,7 @@ native = {
     "live_progress_uses_widgets",
     "live_indeterminate_progress_uses_widgets",
     "live_spinner_uses_widgets",
+    "live_shimmer_uses_widgets",
     "live_status_uses_widgets",
     "live_table_uses_widgets",
     "clear_line_ends_with_carriage_return",
@@ -30,14 +31,13 @@ def is_native_decide_axiom(decl, axiom):
     `Lean.ofReduceBool`. Accept it for the declarations already allowed to use it."""
     return decl in native and "._native.native_decide.ax" in axiom
 
+
 outputs = []
 # One command only. `lake env lean` on a loose file resolved the shared `TermColor.`
 # prefix into the termcolor dependency's build directory and could not find this
 # package's oleans; the `#print axioms` lines now live in the Properties library, so a
 # plain build emits them.
-for command in (
-    ["lake", "build", "TermColor.Terminal.Properties"],
-):
+for command in (["lake", "build", "TermColor.Terminal.Properties"],):
     result = subprocess.run(command, text=True, capture_output=True)
     sys.stdout.write(result.stdout)
     sys.stderr.write(result.stderr)
@@ -67,7 +67,9 @@ for line in "\n".join(outputs).splitlines():
         axioms = {a.strip() for a in joined[: joined.index("]")].strip(" [").split(",")}
         axioms.discard("")
         permitted = allowed | (native_axioms if current in native else set())
-        unexpected = {a for a in axioms - permitted if not is_native_decide_axiom(current, a)}
+        unexpected = {
+            a for a in axioms - permitted if not is_native_decide_axiom(current, a)
+        }
         if unexpected:
             failures.append((current, unexpected))
         current = None

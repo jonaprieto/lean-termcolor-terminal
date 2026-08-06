@@ -113,6 +113,11 @@ theorem live_spinner_uses_widgets :
     let live := { live with state := { frame := 1 } }
     live.view.plainText = "+" := by native_decide
 
+theorem live_shimmer_uses_widgets :
+    let live := LiveShimmer.start (Text.plain "hi") { band := 2 }
+    let live := { live with state := { frame := 3 } }
+    live.view.plainText = "hi" := by native_decide
+
 theorem live_status_uses_widgets :
     let live := LiveStatus.start .warning
     let live := { live with message := Text.plain "slow" }
