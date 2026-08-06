@@ -35,6 +35,39 @@ theorem parse_key_char_and_reject_partial_sequence :
     parseKey "x" = some (.char 'x') ∧ parseKey "\u001b[" = none := by
   decide
 
+theorem parse_key_controls_and_extended_sequences :
+    parseKey "\u0004" = some (.ctrl 'd') ∧
+      parseKey "\u001b[1~" = some .home ∧
+      parseKey "\u001b[6~" = some .pageDown ∧
+      parseKey "\u001b[Z" = some .shiftTab := by
+  decide
+
+theorem parse_sgr_mouse_event :
+    parseMouseEvent "\u001b[<0;12;4M" = some {
+      button := .left
+      action := .press
+      column := 12
+      row := 4
+      modifiers := {}
+    } := by
+  native_decide
+
+theorem parse_sgr_mouse_drag_modifiers :
+    (parseMouseEvent "\u001b[<52;3;2M").map
+      (fun event => (event.action, event.modifiers.ctrl)) =
+      some (MouseAction.drag, true) := by
+  native_decide
+
+theorem screen_diff_rewrites_changed_lines :
+    (Screen.empty.diffSequence ["one", "two"]).1 =
+      "\u001b[1;1H\u001b[2K\rone\u001b[2;1H\u001b[2K\rtwo" := by
+  native_decide
+
+theorem mouse_capture_sequences_are_scoped :
+    mouseCaptureSequence true false = "\u001b[?1000h\u001b[?1006h" ∧
+      mouseCaptureSequence false false = "\u001b[?1006l\u001b[?1000l" := by
+  decide
+
 theorem focus_wraps :
     moveFocus 3 2 .tab = 0 ∧
       moveFocus 3 0 .left = 2 ∧

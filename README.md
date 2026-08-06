@@ -22,7 +22,8 @@ def main : IO Unit := do
 ```
 
 `terminalSize` queries the current `/dev/tty` size first. If no TTY is available, it falls back to
-`COLUMNS` and `LINES`, returning `none` when no terminal size is available.
+`COLUMNS` and `LINES`, returning `none` when no terminal size is available. Results are shared for
+100 ms so live animations do not fork `stty` on every frame.
 
 Cursor-control helpers are no-ops when stdout is redirected or `TERM` is `dumb`/`unknown`.
 Live objects use newline-separated snapshots in that mode, so pipes and CI logs do not receive
@@ -38,9 +39,11 @@ uses this terminal layer for command help and completion output.
 
 ## TUI input core
 
-`parseKey` decodes complete arrow, Enter, Tab, Escape, Backspace, and character sequences into the
-pure `termcolor-widgets` `Key` type. `readKey` reads the same keys directly from a TTY, while
-`withRawInput` scopes character-at-a-time mode and restores the previous terminal settings.
+`parseKey` decodes complete arrow, Home/End, page, reverse-tab, Enter, Tab, Escape, Backspace,
+control, and character sequences into the pure `termcolor-widgets` `Key` type. `readKey` reads the
+same keys directly from a TTY, while `parseEvent`/`readEvent` add SGR mouse events. `withRawInput`
+scopes character-at-a-time mode and restores the previous terminal settings; `withMouseCapture`
+does the same for explicit mouse reporting.
 `moveFocus` wraps an ordered set of application-owned focus slots.
 
 ## Terminal behavior
@@ -48,9 +51,10 @@ pure `termcolor-widgets` `Key` type. `readKey` reads the same keys directly from
 The live path uses ANSI/VT control sequences on capable TTYs. It degrades to newline-separated
 snapshots for pipes, CI logs, `TERM=dumb`, and `TERM=unknown`, keeping redirected output readable
 and free of cursor escapes. Terminal sizing uses the current `/dev/tty` dimensions first and
-`COLUMNS`/`LINES` as the non-TTY fallback. Live regions re-query the terminal width on each
-default-width update, so periodic progress and spinner updates reflow after a window resize. Use
-`updateTextAtWidth` when a fixed width is required.
+`COLUMNS`/`LINES` as the non-TTY fallback. Live regions re-query the terminal width through the
+100 ms cache, so periodic progress and spinner updates reflow after a window resize without paying
+the subprocess cost every frame. `Screen` retains rendered lines and emits only changed-line
+updates for small full-screen apps. Use `updateTextAtWidth` when a fixed width is required.
 
 ## Demo
 
@@ -74,8 +78,8 @@ anything unexpected. Laws proved by `native_decide` trust the compiler rather th
 is named in an explicit allowlist instead of passing unnoticed.
 Most proofs use kernel `decide`; size parsing and string-heavy redraw cases use `native_decide` because
 Lean 4.28 does not reduce those strings in the kernel. CI checks that allowlisted axiom footprint.
-Force the static demo with `TERMCOLOR_TERMINAL_NONINTERACTIVE=1 lake exe demo`. A full-screen retained
-buffer remains outside this small live output layer.
+Force the static demo with `TERMCOLOR_TERMINAL_NONINTERACTIVE=1 lake exe demo`. Cell-granularity
+screen diffing remains outside this small line-oriented output layer.
 
 ## License
 

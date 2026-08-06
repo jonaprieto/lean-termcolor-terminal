@@ -173,18 +173,116 @@ private def sttySize : IO (Option Size) := do
       pure none
   catch _ => pure none
 
-/-- Query terminal dimensions, returning `none` when no size can be determined. -/
-def terminalSize : IO (Option Size) := do
+initialize terminalSizeCache : IO.Ref (Option (Nat × Option Size)) ← IO.mkRef none
+
+private def uncachedTerminalSize : IO (Option Size) := do
   match ← sttySize with
   | some size => pure (some size)
   | none =>
     pure (environmentSize (← IO.getEnv "COLUMNS") (← IO.getEnv "LINES"))
+
+/-- Query terminal dimensions, returning `none` when no size can be determined. -/
+def terminalSize : IO (Option Size) := do
+  let now ← IO.monoNanosNow
+  match ← terminalSizeCache.get with
+  | some (cachedAt, size) =>
+      if now - cachedAt < 100_000_000 then pure size
+      else
+        let size ← uncachedTerminalSize
+        terminalSizeCache.set (some (now, size))
+        pure size
+  | none =>
+      let size ← uncachedTerminalSize
+      terminalSizeCache.set (some (now, size))
+      pure size
+
+-- ponytail: one shared 100ms cache keeps animated updates cheap; add signal-driven invalidation
+-- or termios FFI if resize latency below 100ms becomes a customer requirement.
 
 /-- Query terminal width, falling back to the layout library's default width. -/
 def terminalWidth : IO Nat := do
   match ← terminalSize with
   | some size => pure size.columns
   | none => pure Layout.defaultWidth
+
+private def cursorToRowSequence (row : Nat) : String :=
+  csi ++ toString (row + 1) ++ ";1H"
+
+/-- Retained line-oriented screen state for small full-screen applications. -/
+structure Screen where
+  private previous : List String := []
+  private size : Option Size := none
+
+namespace Screen
+
+/-- Empty screen state, useful when testing `diffSequence` without terminal IO. -/
+def empty : Screen := {}
+
+/-- Start a screen and capture the current terminal size. -/
+def start : IO Screen := do
+  pure { size := ← terminalSize }
+
+/-- Pure line-granularity diff from the previous screen to `next`. -/
+def diffSequence (screen : Screen) (next : List String) : String × Screen :=
+  let count := max screen.previous.length next.length
+  let output := (List.range count).foldl (fun output row =>
+    let oldLine := screen.previous.getD row ""
+    let newLine := next.getD row ""
+    if oldLine == newLine then output
+    else output ++ cursorToRowSequence row ++ clearLineSequence ++ newLine) ""
+  (output, { screen with previous := next })
+
+private def renderedLines (size : Option Size) (text : Text) : Text :=
+  let wrapped := Layout.splitLines (Layout.wrapLines
+    (size.map (·.columns) |>.getD Layout.defaultWidth) text)
+  let lines := match size with
+    | some size => wrapped.take (max 1 size.rows)
+    | none => wrapped
+  Layout.joinLines lines
+
+/-- Render a screen, rewriting only lines whose visible text changed. -/
+def render (screen : Screen) (text : Text) (choice : ColorChoice := .auto) : IO Screen := do
+  let size := (← terminalSize).orElse (fun _ => screen.size)
+  let rendered ← TermColor.render (renderedLines size text) choice
+  let next := rendered.splitOn "\n"
+  if ← terminalControlEnabled then
+    let (output, nextScreen) := screen.diffSequence next
+    write output
+    flush
+    pure { nextScreen with size }
+  else
+    write (rendered ++ "\n")
+    flush
+    pure { screen with previous := next, size }
+
+/-- Finish a screen and leave the cursor below its last rendered line. -/
+def finish (screen : Screen) : IO Screen := do
+  if ← terminalControlEnabled then
+    write (cursorToRowSequence screen.previous.length ++ "\n")
+    flush
+  pure {}
+
+end Screen
+
+/-- Enable SGR mouse events, optionally including drag reporting. -/
+def mouseCaptureSequence (enabled drag : Bool) : String :=
+  if enabled then
+    csi ++ "?" ++ (if drag then "1002" else "1000") ++ "h" ++ csi ++ "?1006h"
+  else
+    csi ++ "?1006l" ++ csi ++ "?" ++ (if drag then "1002" else "1000") ++ "l"
+
+/-- Enable mouse reporting when stdout is a capable terminal. -/
+def enableMouse (drag : Bool := false) : IO Unit :=
+  writeControl (mouseCaptureSequence true drag)
+
+/-- Disable mouse reporting. -/
+def disableMouse (drag : Bool := false) : IO Unit :=
+  writeControl (mouseCaptureSequence false drag)
+
+/-- Scope mouse reporting and restore the terminal mode even when the action fails. -/
+def withMouseCapture {α : Type} (action : IO α) (drag : Bool := false) : IO α := do
+  enableMouse drag
+  try action finally disableMouse drag
 
 /-- State for redrawing a multi-line terminal region in place. -/
 structure LiveRegion where
