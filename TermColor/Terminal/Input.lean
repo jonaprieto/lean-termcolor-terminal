@@ -4,7 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Jonathan Prieto-Cubides.
 -/
 
-import TermColor.Widgets
+import TermColor.Terminal.Basic
 
 /-!
 # TermColor.Terminal.Input
@@ -132,6 +132,15 @@ def parseEvent (input : String) : Option Event :=
   | none => match parseKey input with
     | some key => some (.key key)
     | none => none
+
+/-- Return the first hit region for a left-button press; releases and wheels are ignored. -/
+def hitTest (frame : Frame) (event : MouseEvent) : Option String :=
+  if event.action != .press || event.button != .left then none
+  else frame.hitRegions.find? (fun region => region.contains event.row event.column) |>.map (·.id)
+
+/-- Hit-test a mouse event against the frame currently owned by a screen. -/
+def Screen.hitTest (screen : Screen) (event : MouseEvent) : Option String :=
+  TermColor.Terminal.hitTest screen.frame event
 
 /-- Move through an ordered set of focus slots, wrapping at either end. -/
 def moveFocus (count current : Nat) (key : Widgets.Key) : Nat :=

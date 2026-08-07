@@ -58,6 +58,35 @@ theorem parse_sgr_mouse_drag_modifiers :
       some (MouseAction.drag, true) := by
   native_decide
 
+theorem parse_mouse_filters_press_release_and_scroll :
+    (parseMouseEvent "\u001b[<0;2;3M").map (·.action) = some .press ∧
+      (parseMouseEvent "\u001b[<0;2;3m").map (·.action) = some .release ∧
+      (parseMouseEvent "\u001b[<64;2;3M").map (·.action) = some .scrollUp := by
+  native_decide
+
+theorem hit_region_contains_inclusive_boundaries :
+    let region : HitRegion := { id := "job", top := 2, bottom := 4, left := 3, right := 8 }
+    region.contains 2 3 ∧ region.contains 4 8 ∧ !region.contains 1 3 ∧ !region.contains 3 9 := by
+  decide
+
+theorem hit_test_accepts_only_left_presses :
+    let frame : Frame :=
+      { hitRegions := [{ id := "job", top := 2, bottom := 4, left := 3, right := 8 }] }
+    hitTest frame { button := .left, action := .press, row := 3, column := 4 } = some "job" ∧
+      hitTest frame { button := .left, action := .release, row := 3, column := 4 } = none ∧
+      hitTest frame { button := .right, action := .press, row := 3, column := 4 } = none ∧
+      hitTest frame { button := .none, action := .scrollUp, row := 3, column := 4 } = none := by
+  native_decide
+
+theorem hit_test_uses_first_overlapping_region :
+    let frame : Frame :=
+      { hitRegions :=
+        [{ id := "outer", top := 1, bottom := 5, left := 1, right := 10 },
+         { id := "inner", top := 2, bottom := 4, left := 3, right := 8 }] }
+    hitTest frame { button := .left, action := .press, row := 3, column := 4 } = some "outer" ∧
+      hitTest frame { button := .left, action := .press, row := 8, column := 4 } = none := by
+  native_decide
+
 theorem screen_diff_rewrites_changed_lines :
     (Screen.empty.diffSequence ["one", "two"]).1 =
       "\u001b[1;1H\u001b[2K\rone\u001b[2;1H\u001b[2K\rtwo" := by
