@@ -208,10 +208,33 @@ def terminalWidth : IO Nat := do
 private def cursorToRowSequence (row : Nat) : String :=
   csi ++ toString (row + 1) ++ ";1H"
 
+/-- A stable application-owned rectangle in one-based terminal coordinates. -/
+structure HitRegion where
+  id : String
+  top : Nat
+  bottom : Nat
+  left : Nat
+  right : Nat
+  deriving BEq, DecidableEq, Repr
+
+/-- Whether a one-based terminal coordinate lies inside a hit region. -/
+def HitRegion.contains (region : HitRegion) (row column : Nat) : Bool :=
+  region.top ≤ row && row ≤ region.bottom && region.left ≤ column && column ≤ region.right
+
+/-- A pure frame supplied to `Screen.renderFrame`. -/
+structure Frame where
+  text : Text := Text.empty
+  hitRegions : List HitRegion := []
+  focus : Option String := none
+  deriving BEq, DecidableEq, Repr
+
+instance : Inhabited Frame := ⟨{}⟩
+
 /-- Retained line-oriented screen state for small full-screen applications. -/
 structure Screen where
   private previous : List String := []
   private size : Option Size := none
+  frame : Frame := {}
 
 namespace Screen
 
@@ -240,20 +263,27 @@ private def renderedLines (size : Option Size) (text : Text) : Text :=
     | none => wrapped
   Layout.joinLines lines
 
-/-- Render a screen, rewriting only lines whose visible text changed. -/
-def render (screen : Screen) (text : Text) (choice : ColorChoice := .auto) : IO Screen := do
+/-- Render a frame, atomically retaining its hit regions after the write succeeds. -/
+def renderFrame (screen : Screen) (frame : Frame) (choice : ColorChoice := .auto) : IO Screen := do
   let size := (← terminalSize).orElse (fun _ => screen.size)
-  let rendered ← TermColor.render (renderedLines size text) choice
+  let rendered ← TermColor.render (renderedLines size frame.text) choice
   let next := rendered.splitOn "\n"
   if ← terminalControlEnabled then
     let (output, nextScreen) := screen.diffSequence next
     write output
     flush
-    pure { nextScreen with size }
+    let nextScreen := { nextScreen with size := size }
+    pure { nextScreen with frame }
   else
     write (rendered ++ "\n")
     flush
-    pure { screen with previous := next, size }
+    let nextScreen := { screen with previous := next }
+    let nextScreen := { nextScreen with size := size }
+    pure { nextScreen with frame }
+
+/-- Render a screen, rewriting only lines whose visible text changed. -/
+def render (screen : Screen) (text : Text) (choice : ColorChoice := .auto) : IO Screen :=
+  screen.renderFrame { text } choice
 
 /-- Finish a screen and leave the cursor below its last rendered line. -/
 def finish (screen : Screen) : IO Screen := do

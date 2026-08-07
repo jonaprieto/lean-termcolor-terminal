@@ -6,6 +6,7 @@ Authors: Jonathan Prieto-Cubides
 
 import TermColor.Terminal
 import TermColor.ColorScheme
+import Std.Sync.Mutex
 
 open TermColor
 open TermColor.Layout
@@ -14,6 +15,208 @@ open TermColor.Widgets
 open scoped TermColor.Style
 
 private def demoPalette : ColorScheme := ColorScheme.catppuccin
+
+private def jobBodyLimit : Nat := 80
+
+private def jobFrameInterval : Nat := 80
+
+private def jobMouseWidth : Nat := 80
+
+private inductive JobStatus where
+  | running
+  | success
+  | failure
+  deriving BEq, DecidableEq, Repr
+
+private structure JobState where
+  id : String
+  title : String
+  status : JobStatus := .running
+  logs : List String := []
+  widget : CollapsibleState := {}
+
+private inductive SessionMessage where
+  | started (id : String)
+  | log (id line : String)
+  | completed (id : String) (success : Bool)
+  | input (event : Event)
+
+private def jobConfig : CollapsibleConfig :=
+  { collapsedMarker := Text.styled "▸ " (Style.fg demoPalette.cyan)
+    , expandedMarker := Text.styled "▾ " (Style.fg demoPalette.cyan)
+    , summaryStyle := Style.fg demoPalette.foreground
+    , bodyStyle := Style.dim <+> Style.fg demoPalette.comment
+    , focusStyle := Style.reverse
+    , bodyPrefix := Text.plain "  "
+    , maxBodyLines := 6
+    , overflowText := Text.styled "… more" (Style.fg demoPalette.yellow)
+    , emptyText := Text.styled "(no logs)" (Style.dim <+> Style.fg demoPalette.comment) }
+
+private def jobStatusText : JobStatus → Text
+  | .running => Text.styled "running" (Style.fg demoPalette.yellow)
+  | .success => Text.styled "done" (Style.fg demoPalette.green)
+  | .failure => Text.styled "failed" (Style.fg demoPalette.red)
+
+private def jobSummary (job : JobState) : Text :=
+  Text.plain job.title ++ Text.plain " · " ++ jobStatusText job.status ++
+    Text.plain s!" · {job.logs.length} logs"
+
+private def jobBody (job : JobState) : Text :=
+  Text.plain (String.join (job.logs.intersperse "\n"))
+
+private def retainLogs (logs : List String) : List String :=
+  logs.drop (logs.length - jobBodyLimit)
+
+private def alterJob (id : String) (change : JobState → JobState) : List JobState → List JobState
+  | [] => []
+  | job :: rest =>
+      if job.id == id then change job :: rest else job :: alterJob id change rest
+
+private def focusJob (id : String) (jobs : List JobState) : List JobState :=
+  jobs.map fun job => { job with widget := { job.widget with focused := job.id == id } }
+
+private def focusedIndex (jobs : List JobState) : Nat :=
+  jobs.findIdx? (·.widget.focused) |>.getD 0
+
+private def focusByKey (key : Key) (jobs : List JobState) : List JobState :=
+  let index := moveFocus jobs.length (focusedIndex jobs) key
+  jobs.mapIdx fun index' job =>
+    { job with widget := { job.widget with focused := index' == index } }
+
+private def focusedJob (jobs : List JobState) : Option JobState :=
+  jobs.find? (·.widget.focused)
+
+private def updateFocusedJob (width : Nat) (key : Key) (jobs : List JobState) : List JobState :=
+  match focusedJob jobs with
+  | none => jobs
+  | some job =>
+      alterJob job.id (fun job =>
+        { job with widget :=
+            handleCollapsibleKey jobConfig width (jobBody job) key job.widget }) jobs
+
+private def appendJobLog (id line : String) (jobs : List JobState) : List JobState :=
+  alterJob id (fun job => { job with logs := retainLogs (job.logs ++ [line]) }) jobs
+
+private def applyWorkerMessage (message : SessionMessage) (jobs : List JobState) : List JobState :=
+  match message with
+  | .started id => alterJob id (fun job => { job with status := .running }) jobs
+  | .log id line => appendJobLog id line jobs
+  | .completed id success =>
+      alterJob id (fun job => { job with status := if success then .success else .failure }) jobs
+  | .input _ => jobs
+
+private def appendFrame (width : Nat) (jobs : List JobState) (row : Nat) :
+    List Text × List HitRegion × Option String × Nat :=
+  match jobs with
+  | [] => ([], [], none, row)
+  | job :: rest =>
+      let rendered := renderCollapsible jobConfig width (jobSummary job) (jobBody job) job.widget
+      let region : HitRegion :=
+        { id := job.id, top := row
+          , bottom := row + rendered.hitHeaderHeight - 1
+          , left := 1, right := max 1 width }
+      let (texts, regions, focus, nextRow) := appendFrame width rest (row + rendered.lineCount)
+      let focus := if job.widget.focused then some job.id else focus
+      (rendered.text :: texts, region :: regions, focus, nextRow)
+
+private def jobFrame (width : Nat) (jobs : List JobState) : Frame :=
+  let (texts, regions, focus, _) := appendFrame width jobs 1
+  let footer := Text.styled "Tab/Shift-Tab focus · Enter/Space toggle · arrows scroll · Esc quit"
+    (Style.dim <+> Style.fg demoPalette.comment)
+  { text := Layout.joinLines (texts ++ [footer]), hitRegions := regions, focus }
+
+private def initialJobs : List JobState :=
+  [{ id := "compile", title := "compile", widget := { focused := true } },
+   { id := "tests", title := "tests" }]
+
+private def postMessage (inbox : Std.Mutex (List SessionMessage)) (message : SessionMessage) :
+    IO Unit :=
+  inbox.atomically fun ref => do
+    let messages ← ref.get
+    ref.set (messages ++ [message])
+
+private def drainMessages (inbox : Std.Mutex (List SessionMessage)) : IO (List SessionMessage) :=
+  inbox.atomically fun ref => do
+    let messages ← ref.get
+    ref.set []
+    pure messages
+
+private def runJob (inbox : Std.Mutex (List SessionMessage)) (id : String)
+    (lines : List String) (success : Bool) : IO Unit := do
+  postMessage inbox (.started id)
+  for line in lines do
+    IO.sleep 180
+    postMessage inbox (.log id line)
+  IO.sleep 180
+  postMessage inbox (.completed id success)
+
+private def readInputs (inbox : Std.Mutex (List SessionMessage)) (active : IO.Ref Bool) :
+    IO Unit := do
+  while ← active.get do
+    match ← readEvent with
+    | some event => postMessage inbox (.input event)
+    | none => active.set false
+
+private def applyInput (width : Nat) (frame : Frame) (event : Event)
+    (jobs : List JobState) : List JobState × Bool :=
+  match event with
+  | .key .escape => (jobs, true)
+  | .key .tab => (focusByKey .tab jobs, false)
+  | .key .shiftTab => (focusByKey .shiftTab jobs, false)
+  | .key key => (updateFocusedJob width key jobs, false)
+  | .mouse mouse =>
+      match hitTest frame mouse with
+      | some id =>
+          let jobs := focusJob id jobs
+          (alterJob id (fun job =>
+            { job with widget :=
+                handleCollapsibleKey jobConfig width (jobBody job) .enter job.widget })
+            jobs, false)
+      | none =>
+          match mouse.action with
+          | .scrollUp => (updateFocusedJob width .up jobs, false)
+          | .scrollDown => (updateFocusedJob width .down jobs, false)
+          | _ => (jobs, false)
+
+private def jobSession : IO Unit := do
+  let inbox ← Std.Mutex.new []
+  let active ← IO.mkRef true
+  let _ ← IO.asTask (runJob inbox "compile" ["started", "parsed sources", "built library"] true)
+  let _ ← IO.asTask
+    (runJob inbox "tests" ["started", "running unit tests", "one test failed"] false)
+  let _ ← IO.asTask (readInputs inbox active)
+  let screenRef ← IO.mkRef (← Screen.start)
+  let jobsRef ← IO.mkRef initialJobs
+  let runningRef ← IO.mkRef true
+  hideCursor
+  enterAlternateScreen
+  try
+    withMouseCapture do
+      withRawInput do
+        while ← runningRef.get do
+          let width ← terminalWidth
+          let jobs ← jobsRef.get
+          let screen ← screenRef.get
+          let (nextJobs, quit) := (← drainMessages inbox).foldl
+            (fun (jobs, quit) message =>
+              if quit then (jobs, true)
+              else match message with
+                | .input event => applyInput width screen.frame event jobs
+                | worker => (applyWorkerMessage worker jobs, false)) (jobs, false)
+          jobsRef.set nextJobs
+          if quit then runningRef.set false
+          if ← runningRef.get then
+            screenRef.set (← screen.renderFrame (jobFrame width nextJobs))
+            IO.sleep jobFrameInterval.toUInt32
+  finally
+    active.set false
+    let screen ← screenRef.get
+    let _ ← screen.finish
+    showCursor
+    exitAlternateScreen
+
+private def jobPreview : IO Unit := do
+  writeTextLine (jobFrame jobMouseWidth initialJobs).text
 
 private def showSequence (label sequence : String) : IO Unit :=
   IO.println s!"{label}: {repr sequence}"
@@ -246,8 +449,14 @@ def main : IO Unit := do
   if liveEnabled then
     liveDemo
     liveRegionDemo
+    try
+      jobSession
+    catch _ =>
+      IO.println "job session unavailable; showing static preview"
+      jobPreview
   else
     IO.println "live objects: skipped because stdout is not a terminal"
+    jobPreview
   writeTextLine (Layout.box
     (renderTable [14, 10]
       [[Text.styled "library" (Style.bold <+> Style.fg demoPalette.purple)

@@ -46,6 +46,12 @@ scopes character-at-a-time mode and restores the previous terminal settings; `wi
 does the same for explicit mouse reporting.
 `moveFocus` wraps an ordered set of application-owned focus slots.
 
+`Screen` also supports full-screen frames: a `Frame` carries rendered `Text`, stable application
+`HitRegion`s, and optional focus information. `Screen.renderFrame` updates the visible lines and
+hit regions together. `hitTest` accepts only a left-button press, uses the protocol's one-based
+coordinates, and returns the first matching region ID; release and wheel events remain available
+to the application without causing duplicate clicks.
+
 ## Terminal behavior
 
 The live path uses ANSI/VT control sequences on capable TTYs. It degrades to newline-separated
@@ -62,8 +68,10 @@ Run the demo from an interactive terminal to enter the direct-key TUI first. It 
 `Boxes`, and `About` tabs: `Tab` moves focus, `Left`/`Right` switches tabs or edits controls,
 `Enter` activates Save, and `Esc` exits. The `Boxes` tab demonstrates nested and stacked titled
 boxes arranged with `Layout.columns`. The demo then continues with live progress, spinner, status,
-and table examples. Non-TTY, CI, and forced non-interactive runs show a static control preview and
-skip live animations.
+and table examples, followed by a full-screen two-job session. That session owns one `Screen`,
+coalesces worker messages before rendering, supports keyboard/mouse expansion and scrolling, and
+restores raw input, mouse capture, cursor, and alternate-screen state on exit. Non-TTY, CI, and
+forced non-interactive runs show deterministic static previews and skip live animations.
 
 Build and run the demo:
 
