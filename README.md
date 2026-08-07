@@ -7,8 +7,6 @@
 Terminal control and live IO for the [`termcolor`](https://github.com/jonaprieto/lean-termcolor)
 stack.
 
-Version: `v0.1.12`
-
 ## Terminal primitives
 
 `LiveRegion`, live progress and spinner objects, terminal-size queries, cursor control, raw input,
