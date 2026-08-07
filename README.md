@@ -9,8 +9,8 @@ stack.
 
 ## Terminal primitives
 
-`LiveRegion`, live progress and spinner objects, terminal-size queries, cursor control, raw input,
-mouse capture, key parsing, SGR mouse events, and deterministic non-TTY output are provided here.
+`LiveRegion` for arbitrary pure widget views, terminal-size queries, cursor control, raw input, mouse
+capture, key parsing, SGR mouse events, and deterministic non-TTY output are provided here.
 
 `Screen` renders full-screen `Frame` values. Each frame contains rendered `Text`, stable application
 owned `HitRegion`s, and optional focus information. `renderFrame` updates visible lines and hit

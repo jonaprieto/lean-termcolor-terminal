@@ -161,34 +161,30 @@ theorem live_region_empty_finish_is_safe :
     LiveRegion.start.finishSequence.1 = "" := by decide
 
 theorem live_progress_uses_widgets :
-    let live := LiveProgress.start { width := 4 }
-    let live := { live with state := { current := 1, total := 2 } }
-    live.view.plainText = "[━━──] 50%" := by native_decide
+    (Widgets.progressBar { width := 4 } { current := 1, total := 2 }).plainText =
+      "[━━──] 50%" := by native_decide
 
 theorem live_indeterminate_progress_uses_widgets :
-    let live := LiveIndeterminateProgress.start { width := 8, indeterminateWidth := 3 }
-    let live := { live with state := { frame := 2 } }
-    live.view.plainText = "[──━━━───]" := by native_decide
+    (Widgets.indeterminateProgressBar
+      { width := 8, indeterminateWidth := 3 } { frame := 2 }).plainText =
+      "[──━━━───]" := by native_decide
 
 theorem live_spinner_uses_widgets :
-    let live := LiveSpinner.start { frames := [Text.plain "-", Text.plain "+"] }
-    let live := { live with state := { frame := 1 } }
-    live.view.plainText = "+" := by native_decide
+    (Widgets.renderSpinner { frames := [Text.plain "-", Text.plain "+"] }
+      { frame := 1 }).plainText =
+      "+" := by native_decide
 
 theorem live_shimmer_uses_widgets :
-    let live := LiveShimmer.start (Text.plain "hi") { band := 2 }
-    let live := { live with state := { frame := 3 } }
-    live.view.plainText = "hi" := by native_decide
+    (Widgets.shimmer { band := 2 } { frame := 3 } (Text.plain "hi")).plainText =
+      "hi" := by native_decide
 
 theorem live_status_uses_widgets :
-    let live := LiveStatus.start .warning
-    let live := { live with message := Text.plain "slow" }
-    live.view.plainText = "[warn] slow" := by native_decide
+    (Widgets.renderStatus .warning (Text.plain "slow")).plainText =
+      "[warn] slow" := by native_decide
 
 theorem live_table_uses_widgets :
-    let live := LiveTable.start [5, 5]
-    let live := { live with rows := [[Text.plain "name", Text.plain "state"]] }
-    live.view.plainText = "name   state" := by native_decide
+    (Widgets.renderTable [5, 5] [[Text.plain "name", Text.plain "state"]]).plainText =
+      "name   state" := by native_decide
 
 end Terminal
 end TermColor

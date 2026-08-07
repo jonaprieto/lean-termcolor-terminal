@@ -368,32 +368,33 @@ private def liveDemo : IO Unit := do
       region ← region.updateText (progress ++ Text.plain "\n" ++ spinner)
       IO.sleep 150
     let _ ← region.finish
-    let unknown := LiveIndeterminateProgress.start
+    let config : Widgets.ProgressConfig :=
       { width := 20, indeterminateWidth := 8
         , filledStyle := Style.fg demoPalette.cyan
         , emptyStyle := Style.dim <+> Style.fg demoPalette.comment }
-    let mut unknown := unknown
+    let mut unknown := LiveRegion.start
     for frame in List.range 25 do
-      unknown ← unknown.update
-        { frame, label := Text.styled "indexing (unknown)" (Style.fg demoPalette.cyan) }
+      unknown ← unknown.updateText (Widgets.indeterminateProgressBar config
+        { frame, label := Text.styled "indexing (unknown)" (Style.fg demoPalette.cyan) })
       IO.sleep 150
     let _ ← unknown.finish
     let thinking := Text.styled "Thinking..." (Style.fg demoPalette.foreground)
     let shimmerConfig : ShimmerConfig := { band := 4 }
     if ← stdoutSupportsControl then
-      let mut live := LiveShimmer.start thinking shimmerConfig
-      for _ in List.range 24 do
-        live ← live.tick
+      let mut live := LiveRegion.start
+      for frame in List.range 24 do
+        live ← live.updateText (Widgets.shimmer shimmerConfig { frame } thinking)
         IO.sleep 80
       let _ ← live.finish
     else
-      -- `tick` is inactive without cursor control, so show one frame instead of nothing.
+      -- Without cursor control, show one frame instead of attempting a redraw.
       writeTextLine (Widgets.shimmer shimmerConfig { frame := 6 } thinking)
-    let status := LiveStatus.start
-    let status ← status.update .warning
-      (Text.styled "using a fallback" (Style.fg demoPalette.yellow))
+    let mut status := LiveRegion.start
+    status ← status.updateText (Widgets.renderStatus .warning
+      (Text.styled "using a fallback" (Style.fg demoPalette.yellow)))
     IO.sleep 150
-    let _ ← status.update .success (Text.styled "ready" (Style.fg demoPalette.green))
+    status ← status.updateText (Widgets.renderStatus .success
+      (Text.styled "ready" (Style.fg demoPalette.green)))
     let _ ← status.finish
   finally
     showCursor
@@ -402,15 +403,15 @@ private def liveRegionDemo : IO Unit := do
   IO.println "live region:"
   hideCursor
   try
-    let table := LiveTable.start [12, 10]
-    let table ← table.update
+    let mut table := LiveRegion.start
+    table ← table.updateText (Widgets.renderTable [12, 10]
       [[Text.styled "task" (Style.bold <+> Style.fg demoPalette.purple)
         , Text.styled "status" (Style.bold <+> Style.fg demoPalette.purple)],
-       [Text.plain "download", Text.styled "running" (Style.fg demoPalette.yellow)]]
-    let _ ← table.update
+       [Text.plain "download", Text.styled "running" (Style.fg demoPalette.yellow)]])
+    table ← table.updateText (Widgets.renderTable [12, 10]
       [[Text.styled "task" (Style.bold <+> Style.fg demoPalette.purple)
         , Text.styled "status" (Style.bold <+> Style.fg demoPalette.purple)],
-       [Text.plain "download", Text.styled "done" (Style.fg demoPalette.green)]]
+       [Text.plain "download", Text.styled "done" (Style.fg demoPalette.green)]])
     let _ ← table.finish
   finally
     showCursor
