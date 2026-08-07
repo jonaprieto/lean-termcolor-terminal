@@ -173,6 +173,8 @@ private def sttySize : IO (Option Size) := do
       pure none
   catch _ => pure none
 
+private def terminalSizeCacheNanos : Nat := 250_000_000
+
 initialize terminalSizeCache : IO.Ref (Option (Nat × Option Size)) ← IO.mkRef none
 
 private def uncachedTerminalSize : IO (Option Size) := do
@@ -186,7 +188,7 @@ def terminalSize : IO (Option Size) := do
   let now ← IO.monoNanosNow
   match ← terminalSizeCache.get with
   | some (cachedAt, size) =>
-      if now - cachedAt < 100_000_000 then pure size
+      if now - cachedAt < terminalSizeCacheNanos then pure size
       else
         let size ← uncachedTerminalSize
         terminalSizeCache.set (some (now, size))
@@ -196,8 +198,8 @@ def terminalSize : IO (Option Size) := do
       terminalSizeCache.set (some (now, size))
       pure size
 
--- ponytail: one shared 100ms cache keeps animated updates cheap; add signal-driven invalidation
--- or termios FFI if resize latency below 100ms becomes a customer requirement.
+-- ponytail: one shared 250ms cache keeps animated updates cheap; add signal-driven invalidation
+-- or termios FFI if resize latency below 250ms becomes a customer requirement.
 
 /-- Query terminal width, falling back to the layout library's default width. -/
 def terminalWidth : IO Nat := do
@@ -248,12 +250,12 @@ def start : IO Screen := do
 /-- Pure line-granularity diff from the previous screen to `next`. -/
 def diffSequence (screen : Screen) (next : List String) : String × Screen :=
   let count := max screen.previous.length next.length
-  let output := (List.range count).foldl (fun output row =>
+  let pieces := (List.range count).foldl (fun pieces row =>
     let oldLine := screen.previous.getD row ""
     let newLine := next.getD row ""
-    if oldLine == newLine then output
-    else output ++ cursorToRowSequence row ++ clearLineSequence ++ newLine) ""
-  (output, { screen with previous := next })
+    if oldLine == newLine then pieces
+    else (cursorToRowSequence row ++ clearLineSequence ++ newLine) :: pieces) []
+  (String.join pieces.reverse, { screen with previous := next })
 
 private def renderedLines (size : Option Size) (text : Text) : Text :=
   let wrapped := Layout.splitLines (Layout.wrapLines
@@ -266,6 +268,8 @@ private def renderedLines (size : Option Size) (text : Text) : Text :=
 /-- Render a frame, atomically retaining its hit regions after the write succeeds. -/
 def renderFrame (screen : Screen) (frame : Frame) (choice : ColorChoice := .auto) : IO Screen := do
   let size := (← terminalSize).orElse (fun _ => screen.size)
+  if screen.frame == frame && screen.size == size then
+    return screen
   let rendered ← TermColor.render (renderedLines size frame.text) choice
   let next := rendered.splitOn "\n"
   if ← terminalControlEnabled then
