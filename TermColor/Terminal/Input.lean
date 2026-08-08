@@ -199,6 +199,8 @@ private def readEscapeSequence : IO String := do
   | .timeout | .eof => pure ""
 
 /-- Read one complete key or mouse event, waiting through raw-input timeouts. -/
+-- partiality: raw terminal timeouts are external; retrying until an event or EOF has no
+-- kernel-visible bound.
 partial def readEvent : IO (Option Event) := do
   match ← readByte with
   | .timeout => readEvent
