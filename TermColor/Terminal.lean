@@ -6,6 +6,9 @@ Authors: Jonathan Prieto-Cubides
 
 import TermColor.Terminal.Basic
 import TermColor.Terminal.Input
+import TermColor.Terminal.UI
+import TermColor.Terminal.Buffer
+import TermColor.Terminal.Runtime
 
 /-!
 # termcolor-terminal

@@ -105,25 +105,26 @@ private def applyWorkerMessage (message : SessionMessage) (jobs : List JobState)
       alterJob id (fun job => { job with status := if success then .success else .failure }) jobs
   | .input _ => jobs
 
-private def appendFrame (width : Nat) (jobs : List JobState) (row : Nat) :
-    List Text × List HitRegion × Option String × Nat :=
-  match jobs with
-  | [] => ([], [], none, row)
-  | job :: rest =>
+private def jobView (width : Nat) (job : JobState) : View :=
+  { render := fun context =>
       let rendered := renderCollapsible jobConfig width (jobSummary job) (jobBody job) job.widget
       let region : HitRegion :=
-        { id := job.id, top := row
-          , bottom := row + rendered.hitHeaderHeight - 1
-          , left := 1, right := max 1 width }
-      let (texts, regions, focus, nextRow) := appendFrame width rest (row + rendered.lineCount)
-      let focus := if job.widget.focused then some job.id else focus
-      (rendered.text :: texts, region :: regions, focus, nextRow)
+        { id := job.id, top := context.area.top
+          , bottom := context.area.top + rendered.hitHeaderHeight - 1
+          , left := context.area.left, right := context.area.left + max 1 width - 1 }
+      { text := rendered.text
+        , hitRegions := [region]
+        , focusables := [job.id]
+        , focus := if job.widget.focused then some job.id else none } }
 
 private def jobFrame (width : Nat) (jobs : List JobState) : Frame :=
-  let (texts, regions, focus, _) := appendFrame width jobs 1
   let footer := Text.styled "Tab/Shift-Tab focus · Enter/Space toggle · arrows scroll · Esc quit"
     (Style.dim <+> Style.fg demoPalette.comment)
-  { text := Layout.joinLines (texts ++ [footer]), hitRegions := regions, focus }
+  let children := jobs.map (jobView width) ++ [View.text footer]
+  let rendered := (View.column 0 children).render
+    { size := { columns := width, rows := 200 }
+      area := { top := 1, left := 1, width, height := 200 } }
+  rendered.toFrame
 
 private def initialJobs : List JobState :=
   [{ id := "compile", title := "compile", widget := { focused := true } },
@@ -153,7 +154,7 @@ private def runJob (inbox : Std.Mutex (List SessionMessage)) (id : String)
 private def readInputs (inbox : Std.Mutex (List SessionMessage)) (active : IO.Ref Bool) :
     IO Unit := do
   while ← active.get do
-    match ← readEvent with
+    match ← readEventWhile active.get with
     | some event => postMessage inbox (.input event)
     | none => active.set false
 
@@ -165,7 +166,8 @@ private def applyInput (width : Nat) (frame : Frame) (event : Event)
   | .key .shiftTab => (focusByKey .shiftTab jobs, false)
   | .key key => (updateFocusedJob width key jobs, false)
   | .mouse mouse =>
-      match hitTest frame mouse with
+      let rendered := Rendered.fromFrame frame
+      match target rendered (FocusRing.fromRendered rendered) (.mouse mouse) with
       | some id =>
           let jobs := focusJob id jobs
           (alterJob id (fun job =>
@@ -184,36 +186,35 @@ private def jobSession : IO Unit := do
   let _ ← IO.asTask (runJob inbox "compile" ["started", "parsed sources", "built library"] true)
   let _ ← IO.asTask
     (runJob inbox "tests" ["started", "running unit tests", "one test failed"] false)
-  let _ ← IO.asTask (readInputs inbox active)
   let screenRef ← IO.mkRef (← Screen.start)
   let jobsRef ← IO.mkRef initialJobs
   let runningRef ← IO.mkRef true
-  hideCursor
-  enterAlternateScreen
-  try
-    withMouseCapture do
-      withRawInput do
-        while ← runningRef.get do
-          let width ← terminalWidth
-          let jobs ← jobsRef.get
-          let screen ← screenRef.get
-          let (nextJobs, quit) := (← drainMessages inbox).foldl
-            (fun (jobs, quit) message =>
-              if quit then (jobs, true)
-              else match message with
-                | .input event => applyInput width screen.frame event jobs
-                | worker => (applyWorkerMessage worker jobs, false)) (jobs, false)
-          jobsRef.set nextJobs
-          if quit then runningRef.set false
-          if ← runningRef.get then
-            screenRef.set (← screen.renderFrame (jobFrame width nextJobs))
-            IO.sleep jobFrameInterval.toUInt32
-  finally
-    active.set false
-    let screen ← screenRef.get
-    let _ ← screen.finish
-    showCursor
-    exitAlternateScreen
+  withHiddenCursor do
+    withAlternateScreen do
+      withMouseCapture do
+        withRawInput do
+          let inputTask ← IO.asTask (readInputs inbox active)
+          try
+            while ← runningRef.get do
+              let width ← terminalWidth
+              let jobs ← jobsRef.get
+              let screen ← screenRef.get
+              let (nextJobs, quit) := (← drainMessages inbox).foldl
+                (fun (jobs, quit) message =>
+                  if quit then (jobs, true)
+                  else match message with
+                    | .input event => applyInput width screen.frame event jobs
+                    | worker => (applyWorkerMessage worker jobs, false)) (jobs, false)
+              jobsRef.set nextJobs
+              if quit then runningRef.set false
+              if ← runningRef.get then
+                screenRef.set (← screen.renderFrame (jobFrame width nextJobs))
+                IO.sleep jobFrameInterval.toUInt32
+          finally
+            active.set false
+            let _ := inputTask.get
+            let screen ← screenRef.get
+            let _ ← screen.finish
 
 private def jobPreview : IO Unit := do
   writeTextLine (jobFrame jobMouseWidth initialJobs).text

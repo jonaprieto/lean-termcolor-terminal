@@ -158,14 +158,16 @@ def withRawInput {α : Type} (action : IO α) : IO α := do
   let saved ← runStty "stty -g < /dev/tty"
   if saved.exitCode != 0 then
     throw (IO.userError "could not read terminal settings")
-  let configured ← runStty "stty -echo -icanon min 0 time 1 < /dev/tty"
-  if configured.exitCode != 0 then
-    throw (IO.userError "could not configure raw terminal input")
   try
+    let configured ← runStty "stty -echo -icanon min 0 time 1 < /dev/tty"
+    if configured.exitCode != 0 then
+      throw (IO.userError "could not configure raw terminal input")
     action
   finally
     let restore := "stty " ++ saved.stdout.trimAscii.toString ++ " < /dev/tty"
-    let _ ← runStty restore
+    let restored ← runStty restore
+    if restored.exitCode != 0 then
+      throw (IO.userError "could not restore terminal settings")
 
 private inductive ByteRead where
   | byte (value : UInt8)
@@ -179,41 +181,100 @@ private def readByte : IO ByteRead := do
   | some byte => pure (.byte byte)
   | none => if ← stdin.isTty then pure .timeout else pure .eof
 
-private def readCsi (input : String) : IO String := do
+private def readBytes : Nat → IO (Option (List UInt8))
+  | 0 => pure (some [])
+  | count + 1 => do
+      match ← readByte with
+      | .byte byte =>
+          match ← readBytes count with
+          | some rest => pure (some (byte :: rest))
+          | none => pure none
+      | .timeout | .eof => pure none
+
+private def isContinuation (byte : UInt8) : Bool :=
+  0x80 ≤ byte.toNat && byte.toNat ≤ 0xbf
+
+private def validContinuations : List UInt8 → Bool
+  | [] => true
+  | byte :: rest => isContinuation byte && validContinuations rest
+
+private def validCodepoint (count value : Nat) : Bool :=
+  let minimum := match count with
+    | 1 => 0x80
+    | 2 => 0x800
+    | _ => 0x10000
+  minimum ≤ value && value ≤ 0x10ffff && !(0xd800 ≤ value && value ≤ 0xdfff)
+
+/-- Decode a UTF-8 character after its first byte; incomplete input falls back to that byte. -/
+private def decodeUtf8 (first : UInt8) : IO Char := do
+  let value := first.toNat
+  let count := if value < 0x80 then 0
+    else if value < 0xe0 then 1
+    else if value < 0xf0 then 2
+    else if value < 0xf8 then 3
+    else 0
+  match count with
+  | 0 => pure (Char.ofNat value)
+  | count =>
+      match ← readBytes count with
+      | none => pure (Char.ofNat value)
+      | some bytes =>
+          if !validContinuations bytes then pure (Char.ofNat value)
+          else
+            let codepoint := match count, bytes with
+              | 1, [second] => (value % 0x20) * 0x40 + (second.toNat % 0x40)
+              | 2, [second, third] =>
+                  (value % 0x10) * 0x1000 + (second.toNat % 0x40) * 0x40 +
+                    (third.toNat % 0x40)
+              | 3, [second, third, fourth] =>
+                  (value % 0x08) * 0x40000 + (second.toNat % 0x40) * 0x1000 +
+                    (third.toNat % 0x40) * 0x40 + (fourth.toNat % 0x40)
+              | _, _ => value
+            if validCodepoint count codepoint then pure (Char.ofNat codepoint)
+            else pure (Char.ofNat value)
+
+private def readCsiWhile (keepGoing : IO Bool) (input : String) : IO String := do
   let rec go (input : String) (fuel : Nat) : IO String := do
-    match fuel with
-    | 0 => pure input
-    | fuel + 1 =>
-        match ← readByte with
-        | .byte byte =>
-            let input := input.push (Char.ofNat byte.toNat)
-            if 0x40 ≤ byte.toNat && byte.toNat ≤ 0x7e then pure input
-            else go input fuel
-        | .timeout | .eof => pure input
+    if !(← keepGoing) then pure input else
+      match fuel with
+      | 0 => pure input
+      | fuel + 1 =>
+          match ← readByte with
+          | .byte byte =>
+              let input := input.push (Char.ofNat byte.toNat)
+              if 0x40 ≤ byte.toNat && byte.toNat ≤ 0x7e then pure input
+              else go input fuel
+          | .timeout | .eof => pure input
   go input 32
 
-private def readEscapeSequence : IO String := do
-  match ← readByte with
-  | .byte 91 => readCsi "["
-  | .byte byte => pure (String.singleton (Char.ofNat byte.toNat))
-  | .timeout | .eof => pure ""
+private def readEscapeSequenceWhile (keepGoing : IO Bool) : IO String := do
+  if !(← keepGoing) then pure "" else
+    match ← readByte with
+    | .byte 91 => readCsiWhile keepGoing "["
+    | .byte byte => pure (String.singleton (Char.ofNat byte.toNat))
+    | .timeout | .eof => pure ""
 
-/-- Read one complete key or mouse event, waiting through raw-input timeouts. -/
+/-- Read one complete key or mouse event while a caller-owned condition holds. -/
 -- partiality: raw terminal timeouts are external; retrying until an event or EOF has no
 -- kernel-visible bound.
-partial def readEvent : IO (Option Event) := do
-  match ← readByte with
-  | .timeout => readEvent
-  | .eof => pure none
-  | .byte 27 =>
-      let suffix ← readEscapeSequence
-      match parseEvent ("\u001b" ++ suffix) with
-      | some event => pure (some event)
-      | none => pure (some (.key .escape))
-  | .byte byte =>
-      match parseEvent (String.singleton (Char.ofNat byte.toNat)) with
-      | some event => pure (some event)
-      | none => pure none
+partial def readEventWhile (keepGoing : IO Bool) : IO (Option Event) := do
+  if !(← keepGoing) then pure none else
+    match ← readByte with
+    | .timeout => readEventWhile keepGoing
+    | .eof => pure none
+    | .byte 27 =>
+        let suffix ← readEscapeSequenceWhile keepGoing
+        match parseEvent ("\u001b" ++ suffix) with
+        | some event => pure (some event)
+        | none => pure (some (.key .escape))
+    | .byte byte =>
+        let character ← decodeUtf8 byte
+        match parseEvent (String.singleton character) with
+        | some event => pure (some event)
+        | none => pure none
+
+/-- Read one complete key or mouse event, waiting through raw-input timeouts. -/
+def readEvent : IO (Option Event) := readEventWhile (pure true)
 
 /-- Read one ASCII terminal key, including the common arrow-key escape sequences. -/
 def readKey : IO (Option Widgets.Key) := do

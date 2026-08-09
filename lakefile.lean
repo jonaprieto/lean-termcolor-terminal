@@ -2,7 +2,7 @@ import Lake
 open Lake DSL
 
 package «termcolor-terminal» where
-  version := v!"0.2.1"
+  version := v!"0.3.0"
   leanOptions := #[⟨`autoImplicit, false⟩, ⟨`relaxedAutoImplicit, false⟩]
 
 require «termcolor» from git
@@ -28,4 +28,8 @@ lean_lib «TermColor.Terminal.Properties» where
 
 lean_exe «demo» where
   root := `Demo
+  srcDir := "examples"
+
+lean_exe «bench» where
+  root := `Bench
   srcDir := "examples"

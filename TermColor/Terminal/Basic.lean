@@ -227,6 +227,7 @@ def HitRegion.contains (region : HitRegion) (row column : Nat) : Bool :=
 structure Frame where
   text : Text := Text.empty
   hitRegions : List HitRegion := []
+  focusables : List String := []
   focus : Option String := none
   deriving BEq, DecidableEq, Repr
 
