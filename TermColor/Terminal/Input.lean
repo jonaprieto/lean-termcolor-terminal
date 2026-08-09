@@ -50,6 +50,16 @@ inductive Event where
   | mouse (value : MouseEvent)
   deriving BEq, DecidableEq, Repr
 
+/-- One byte-level input result, including the raw terminal's timeout boundary. -/
+inductive ByteRead where
+  | byte (value : UInt8)
+  | timeout
+  | eof
+  deriving BEq, DecidableEq, Repr
+
+/-- An effectful byte source suitable for terminal input adapters. -/
+abbrev ByteSource := IO ByteRead
+
 private def controlKey (value : Nat) : Option Widgets.Key :=
   if value == 0 then some (.ctrl '@')
   else if value ≤ 26 then some (.ctrl (Char.ofNat (value + 96)))
@@ -169,24 +179,20 @@ def withRawInput {α : Type} (action : IO α) : IO α := do
     if restored.exitCode != 0 then
       throw (IO.userError "could not restore terminal settings")
 
-private inductive ByteRead where
-  | byte (value : UInt8)
-  | timeout
-  | eof
-
-private def readByte : IO ByteRead := do
+private def readByte : ByteSource := do
   let stdin ← IO.getStdin
   let bytes ← stdin.read 1
   match bytes[0]? with
   | some byte => pure (.byte byte)
   | none => if ← stdin.isTty then pure .timeout else pure .eof
 
-private def readBytes : Nat → IO (Option (List UInt8))
+private def readBytes {m : Type → Type} [Monad m] (readByte : m ByteRead) :
+    Nat → m (Option (List UInt8))
   | 0 => pure (some [])
   | count + 1 => do
       match ← readByte with
       | .byte byte =>
-          match ← readBytes count with
+          match ← readBytes readByte count with
           | some rest => pure (some (byte :: rest))
           | none => pure none
       | .timeout | .eof => pure none
@@ -206,7 +212,8 @@ private def validCodepoint (count value : Nat) : Bool :=
   minimum ≤ value && value ≤ 0x10ffff && !(0xd800 ≤ value && value ≤ 0xdfff)
 
 /-- Decode a UTF-8 character after its first byte; incomplete input falls back to that byte. -/
-private def decodeUtf8 (first : UInt8) : IO Char := do
+private def decodeUtf8 {m : Type → Type} [Monad m] (readByte : m ByteRead) (first : UInt8) :
+    m Char := do
   let value := first.toNat
   let count := if value < 0x80 then 0
     else if value < 0xe0 then 1
@@ -216,7 +223,7 @@ private def decodeUtf8 (first : UInt8) : IO Char := do
   match count with
   | 0 => pure (Char.ofNat value)
   | count =>
-      match ← readBytes count with
+      match ← readBytes readByte count with
       | none => pure (Char.ofNat value)
       | some bytes =>
           if !validContinuations bytes then pure (Char.ofNat value)
@@ -233,8 +240,9 @@ private def decodeUtf8 (first : UInt8) : IO Char := do
             if validCodepoint count codepoint then pure (Char.ofNat codepoint)
             else pure (Char.ofNat value)
 
-private def readCsiWhile (keepGoing : IO Bool) (input : String) : IO String := do
-  let rec go (input : String) (fuel : Nat) : IO String := do
+private def readCsiWhile {m : Type → Type} [Monad m] (readByte : m ByteRead) (keepGoing : m Bool)
+    (input : String) : m String := do
+  let rec go (input : String) (fuel : Nat) : m String := do
     if !(← keepGoing) then pure input else
       match fuel with
       | 0 => pure input
@@ -247,31 +255,36 @@ private def readCsiWhile (keepGoing : IO Bool) (input : String) : IO String := d
           | .timeout | .eof => pure input
   go input 32
 
-private def readEscapeSequenceWhile (keepGoing : IO Bool) : IO String := do
+private def readEscapeSequenceWhile {m : Type → Type} [Monad m] (readByte : m ByteRead)
+    (keepGoing : m Bool) : m String := do
   if !(← keepGoing) then pure "" else
     match ← readByte with
-    | .byte 91 => readCsiWhile keepGoing "["
+    | .byte 91 => readCsiWhile readByte keepGoing "["
     | .byte byte => pure (String.singleton (Char.ofNat byte.toNat))
     | .timeout | .eof => pure ""
 
-/-- Read one complete key or mouse event while a caller-owned condition holds. -/
--- partiality: raw terminal timeouts are external; retrying until an event or EOF has no
--- kernel-visible bound.
-partial def readEventWhile (keepGoing : IO Bool) : IO (Option Event) := do
+/-- Decode one event from an injectable byte source. -/
+-- partiality: timeout input is external; callers provide the stopping condition.
+partial def readEventFrom {m : Type → Type} [Monad m] (readByte : m ByteRead)
+    (keepGoing : m Bool) : m (Option Event) := do
   if !(← keepGoing) then pure none else
     match ← readByte with
-    | .timeout => readEventWhile keepGoing
+    | .timeout => readEventFrom readByte keepGoing
     | .eof => pure none
     | .byte 27 =>
-        let suffix ← readEscapeSequenceWhile keepGoing
+        let suffix ← readEscapeSequenceWhile readByte keepGoing
         match parseEvent ("\u001b" ++ suffix) with
         | some event => pure (some event)
         | none => pure (some (.key .escape))
     | .byte byte =>
-        let character ← decodeUtf8 byte
+        let character ← decodeUtf8 readByte byte
         match parseEvent (String.singleton character) with
         | some event => pure (some event)
         | none => pure none
+
+/-- Read one complete terminal event while a caller-owned condition holds. -/
+def readEventWhile (keepGoing : IO Bool) : IO (Option Event) :=
+  readEventFrom readByte keepGoing
 
 /-- Read one complete key or mouse event, waiting through raw-input timeouts. -/
 def readEvent : IO (Option Event) := readEventWhile (pure true)

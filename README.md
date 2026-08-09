@@ -12,6 +12,9 @@ stack.
 `LiveRegion` for arbitrary pure widget views, terminal-size queries, cursor control, raw input, mouse
 capture, key parsing, SGR mouse events, and deterministic non-TTY output are provided here.
 
+Input decoding is testable without a terminal: `readEventFrom` accepts an injectable `ByteRead`
+source, while `readEventWhile` supplies the real raw-terminal source and caller-owned cancellation.
+
 `Screen` renders full-screen `Frame` values. Each frame contains rendered `Text`, stable application
 owned `HitRegion`s, and optional focus information. `renderFrame` updates visible lines and hit
 regions together; `hitTest` accepts left-button presses using one-based terminal coordinates.

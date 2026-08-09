@@ -42,6 +42,39 @@ theorem parse_key_controls_and_extended_sequences :
       parseKey "\u001b[Z" = some .shiftTab := by
   decide
 
+private def fixtureByte : StateM (List ByteRead) ByteRead := fun input =>
+  match input with
+  | [] => (.eof, [])
+  | byte :: rest => (byte, rest)
+
+private def fixtureEvent (keepGoing : Bool) (input : List ByteRead) :
+    Option Event × List ByteRead :=
+  (readEventFrom fixtureByte (pure keepGoing)).run input
+
+theorem input_fixture_retries_timeout :
+    fixtureEvent true [.timeout, .byte 120] = (some (.key (.char 'x')), []) := by
+  native_decide
+
+theorem input_fixture_eof_stops :
+    fixtureEvent true [.eof] = (none, []) := by
+  native_decide
+
+theorem input_fixture_standalone_escape :
+    fixtureEvent true [.byte 27, .timeout] = (some (.key .escape), []) := by
+  native_decide
+
+theorem input_fixture_reads_csi_sequence :
+    fixtureEvent true [.byte 27, .byte 91, .byte 65] = (some (.key .up), []) := by
+  native_decide
+
+theorem input_fixture_preserves_invalid_byte_handling :
+    fixtureEvent true [.byte 255] = (some (.key (.char (Char.ofNat 255))), []) := by
+  native_decide
+
+theorem input_fixture_cancellation_does_not_read :
+    fixtureEvent false [.byte 120] = (none, [.byte 120]) := by
+  native_decide
+
 theorem parse_sgr_mouse_event :
     parseMouseEvent "\u001b[<0;12;4M" = some {
       button := .left
