@@ -140,7 +140,8 @@ def run {Model State : Type} (renderer : Renderer State) (config : LoopConfig Mo
                 let output ← outputRef.get
                 let model ← modelRef.get
                 let size ← sizeRef.get
-                outputRef.set (← renderer.render size output (config.view (renderContext size) model))
+                outputRef.set
+                  (← renderer.render size output (config.view (renderContext size) model))
                 IO.sleep config.tickMs
                 match ← reader.take with
                 | some none => cancellation.cancel

@@ -125,6 +125,17 @@ theorem screen_diff_rewrites_changed_lines :
       "\u001b[1;1H\u001b[2K\rone\u001b[2;1H\u001b[2K\rtwo" := by
   native_decide
 
+theorem screen_diff_rewrites_selection_style_flip :
+    let screen := (Screen.empty.diffSequence ["plain"]).2
+    (screen.diffSequence ["selected"]).1 =
+      "\u001b[1;1H\u001b[2K\rselected" := by
+  native_decide
+
+theorem screen_diff_clears_removed_trailing_rows :
+    let screen := (Screen.empty.diffSequence ["one", "two"]).2
+    (screen.diffSequence ["one"]).1 = "\u001b[2;1H\u001b[2K\r" := by
+  native_decide
+
 theorem mouse_capture_sequences_are_scoped :
     mouseCaptureSequence true false = "\u001b[?1000h\u001b[?1006h" ∧
       mouseCaptureSequence false false = "\u001b[?1006l\u001b[?1000l" := by
