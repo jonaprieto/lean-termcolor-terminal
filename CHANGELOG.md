@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.5 — 2026-08-13
+
+- Share the terminal runtime event loop between mouse and non-mouse modes.
+
 ## 0.3.4 — 2026-08-13
 
 - Publish the dependency-graph README cleanup.
