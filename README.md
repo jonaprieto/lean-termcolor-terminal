@@ -83,7 +83,11 @@ cleanup after exit or failure. Redirected output falls back to newline-separated
 ## Related projects
 
 [`termcolor-widgets`](https://github.com/jonaprieto/lean-termcolor-widgets) supplies pure views;
-[`termcolor-repl`](https://github.com/jonaprieto/lean-termcolor-repl) supplies reusable REPL input.
+[`termcolor-repl`](https://github.com/jonaprieto/lean-termcolor-repl) supplies reusable REPL input;
+[`termcolor-layout`](https://github.com/jonaprieto/lean-termcolor-layout) supplies layout;
+[`lean-argus`](https://github.com/jonaprieto/lean-argus),
+[`lean-calc-chat`](https://github.com/jonaprieto/lean-calc-chat), and
+[`oatp`](https://github.com/jonaprieto/oatp) use the terminal layer.
 
 ## License
 
