@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.6 — 2026-08-13
+
+- Pin the newest released TermColor, TermColor Layout, and TermColor Widgets dependencies.
+
 ## 0.3.5 — 2026-08-13
 
 - Share the terminal runtime event loop between mouse and non-mouse modes.
