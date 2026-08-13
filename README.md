@@ -9,6 +9,8 @@
 Terminal control and live IO for the [`termcolor`](https://github.com/jonaprieto/lean-termcolor)
 stack.
 
+<p align="center"><img src="docs/assets/termcolor-terminal.png" alt="TermColor terminal demo" width="720"></p>
+
 ## Terminal primitives
 
 `LiveRegion` for arbitrary pure widget views, terminal-size queries, cursor control, raw input, mouse
