@@ -122,6 +122,27 @@ private def currentSize (fallback : Size) : IO Size := do
 private def renderContext (size : Size) : ViewContext :=
   { size, area := { top := 1, left := 1, width := size.columns, height := size.rows } }
 
+private def runLoop {Model State : Type} (renderer : Renderer State)
+    (config : LoopConfig Model) (cancellation : Cancellation) (reader : EventReader)
+    (modelRef : IO.Ref Model) (sizeRef : IO.Ref Size) (outputRef : IO.Ref State) : IO Unit := do
+  while config.isRunning (← modelRef.get) && !(← cancellation.isCancelled) do
+    reader.ensureReading (do return !(← cancellation.isCancelled))
+    let output ← outputRef.get
+    let model ← modelRef.get
+    let size ← sizeRef.get
+    outputRef.set (← renderer.render size output (config.view (renderContext size) model))
+    IO.sleep config.tickMs
+    match ← reader.take with
+    | some none => cancellation.cancel
+    | some (some event) => modelRef.set (config.update (.input event) model)
+    | none =>
+        let nextSize ← currentSize config.fallbackSize
+        if nextSize != size then
+          sizeRef.set nextSize
+          modelRef.set (config.update (.resize nextSize) model)
+        else
+          modelRef.set (config.update .tick model)
+
 /-- Run a small model/view loop with injectable renderer and guaranteed terminal cleanup. -/
 def run {Model State : Type} (renderer : Renderer State) (config : LoopConfig Model) : IO Unit := do
   let cancellation ← Cancellation.new
@@ -134,44 +155,9 @@ def run {Model State : Type} (renderer : Renderer State) (config : LoopConfig Mo
       try
         if config.mouse then
           withMouseCapture do
-            withRawInput do
-              while config.isRunning (← modelRef.get) && !(← cancellation.isCancelled) do
-                reader.ensureReading (do return !(← cancellation.isCancelled))
-                let output ← outputRef.get
-                let model ← modelRef.get
-                let size ← sizeRef.get
-                outputRef.set
-                  (← renderer.render size output (config.view (renderContext size) model))
-                IO.sleep config.tickMs
-                match ← reader.take with
-                | some none => cancellation.cancel
-                | some (some event) => modelRef.set (config.update (.input event) model)
-                | none =>
-                    let nextSize ← currentSize config.fallbackSize
-                    if nextSize != size then
-                      sizeRef.set nextSize
-                      modelRef.set (config.update (.resize nextSize) model)
-                    else
-                      modelRef.set (config.update .tick model)
+            withRawInput (runLoop renderer config cancellation reader modelRef sizeRef outputRef)
         else
-          withRawInput do
-            while config.isRunning (← modelRef.get) && !(← cancellation.isCancelled) do
-              reader.ensureReading (do return !(← cancellation.isCancelled))
-              let output ← outputRef.get
-              let model ← modelRef.get
-              let size ← sizeRef.get
-              outputRef.set (← renderer.render size output (config.view (renderContext size) model))
-              IO.sleep config.tickMs
-              match ← reader.take with
-              | some none => cancellation.cancel
-              | some (some event) => modelRef.set (config.update (.input event) model)
-              | none =>
-                  let nextSize ← currentSize config.fallbackSize
-                  if nextSize != size then
-                    sizeRef.set nextSize
-                    modelRef.set (config.update (.resize nextSize) model)
-                  else
-                    modelRef.set (config.update .tick model)
+          withRawInput (runLoop renderer config cancellation reader modelRef sizeRef outputRef)
       finally
         cancellation.cancel
         reader.waitStopped
