@@ -11,17 +11,10 @@ stack.
 
 <p align="center"><img src="docs/assets/termcolor-terminal.png" alt="TermColor terminal demo" width="720"></p>
 
-## Status and review
+## Development
 
-These libraries are actively evolving and are developed with AI assistance and human review.
-CI and machine-checked proofs provide useful evidence, but do not guarantee correctness,
-soundness, portability, performance, or suitability for every use case. Validate behavior
-and assumptions before relying on a release.
-
-Reviewer feedback is welcome, especially on correctness, proofs, API design, usability,
-portability, performance, documentation, and real-world use. Please use the
-[issue tracker](https://github.com/jonaprieto/lean-termcolor-terminal/issues) or open a PR with a
-reproducible example and the expected behavior.
+This project is maintained by its author with AI-assisted development tools.
+Changes are reviewed, tested, and remain the maintainer's responsibility.
 
 ## Terminal primitives
 
