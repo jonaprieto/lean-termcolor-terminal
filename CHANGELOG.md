@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.8 — 2026-09-09
+
+- Refresh TermColor dependencies and document the contribution policy and package problem.
+
 ## 0.3.7 — 2026-09-08
 
 - Support Lean v4.33.1 and refresh the TermColor stack dependencies.
