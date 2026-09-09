@@ -9,6 +9,11 @@
 Terminal control and live IO for the [`termcolor`](https://github.com/jonaprieto/lean-termcolor)
 stack.
 
+## Problem
+
+Applications need live terminal input and output, but that IO layer should stay separate from pure
+formatting, layout, diagnostics, and widgets.
+
 <p align="center"><img src="docs/assets/termcolor-terminal.png" alt="TermColor terminal demo" width="720"></p>
 
 ## Development
