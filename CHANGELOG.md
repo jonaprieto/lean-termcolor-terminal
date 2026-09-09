@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.7 — 2026-09-08
+
+- Support Lean v4.33.1 and refresh the TermColor stack dependencies.
+- Clarify AI-assisted development.
+
 ## 0.3.6 — 2026-08-13
 
 - Pin the newest released TermColor, TermColor Layout, and TermColor Widgets dependencies.
