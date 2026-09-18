@@ -23,19 +23,27 @@ namespace Terminal
 open TermColor
 
 /-- A renderer owns its retained output state and terminal writes. -/
-structure Renderer (State : Type) where
+structure Renderer
+    (State : Type)
+    where
   start : IO State
   render : Size → State → Rendered → IO State
   finish : State → IO Unit
 
-def lineRenderer (choice : ColorChoice := .auto) : Renderer Screen where
+def lineRenderer
+    (choice : ColorChoice := .auto)
+    : Renderer Screen
+    where
   start := Screen.start
   render := fun _ screen rendered => screen.renderFrame rendered.toFrame choice
   finish := fun screen => do
     let _ ← Screen.finish screen
     pure ()
 
-def bufferRenderer (choice : ColorChoice := .auto) : Renderer BufferScreen where
+def bufferRenderer
+    (choice : ColorChoice := .auto)
+    : Renderer BufferScreen
+    where
   start := pure BufferScreen.empty
   render := fun size screen rendered => do
     let buffer := Buffer.fromText size rendered.text
@@ -49,7 +57,10 @@ def bufferRenderer (choice : ColorChoice := .auto) : Renderer BufferScreen where
       flush
 
 /-- Scope cursor and alternate-screen state. Both controls restore on failure. -/
-def withTerminal {α : Type} (action : IO α) : IO α :=
+def withTerminal
+    {α : Type}
+    (action : IO α)
+    : IO α :=
   withHiddenCursor (withAlternateScreen action)
 
 structure Cancellation where
@@ -107,7 +118,9 @@ def waitStopped (reader : EventReader) : IO Unit := do
 
 end EventReader
 
-structure LoopConfig (Model : Type) where
+structure LoopConfig
+    (Model : Type)
+    where
   initial : Model
   fallbackSize : Size := { columns := Layout.defaultWidth, rows := 24 }
   tickMs : UInt32 := 60
@@ -119,7 +132,10 @@ structure LoopConfig (Model : Type) where
 private def currentSize (fallback : Size) : IO Size := do
   pure ((← terminalSize).getD fallback)
 
-private def renderContext (size : Size) : ViewContext :=
+private
+def renderContext
+    (size : Size)
+    : ViewContext :=
   { size, area := { top := 1, left := 1, width := size.columns, height := size.rows } }
 
 private def runLoop {Model State : Type} (renderer : Renderer State)

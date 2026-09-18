@@ -60,14 +60,19 @@ inductive ByteRead where
 /-- An effectful byte source suitable for terminal input adapters. -/
 abbrev ByteSource := IO ByteRead
 
-private def controlKey (value : Nat) : Option Widgets.Key :=
+private
+def controlKey
+    (value : Nat)
+    : Option Widgets.Key :=
   if value == 0 then some (.ctrl '@')
   else if value ≤ 26 then some (.ctrl (Char.ofNat (value + 96)))
   else if value < 32 then some (.ctrl (Char.ofNat (value + 64)))
   else none
 
 /-- Decode one complete terminal key sequence. -/
-def parseKey (input : String) : Option Widgets.Key :=
+def parseKey
+    (input : String)
+    : Option Widgets.Key :=
   match input with
   | "\u001b[A" => some .up
   | "\u001b[B" => some .down
@@ -91,7 +96,10 @@ def parseKey (input : String) : Option Widgets.Key :=
       | [character] => controlKey character.toNat |>.orElse (fun _ => some (.char character))
       | _ => none
 
-private def parseMouseButton (code : Nat) : MouseButton :=
+private
+def parseMouseButton
+    (code : Nat)
+    : MouseButton :=
   match code with
   | 0 => .left
   | 1 => .middle
@@ -136,7 +144,9 @@ def parseMouseEvent (input : String) : Option MouseEvent := do
         }
 
 /-- Decode either a complete key sequence or a complete SGR mouse event. -/
-def parseEvent (input : String) : Option Event :=
+def parseEvent
+    (input : String)
+    : Option Event :=
   match parseMouseEvent input with
   | some event => some (.mouse event)
   | none => match parseKey input with
@@ -144,23 +154,35 @@ def parseEvent (input : String) : Option Event :=
     | none => none
 
 /-- Return the first hit region for a left-button press; releases and wheels are ignored. -/
-def hitTest (frame : Frame) (event : MouseEvent) : Option String :=
+def hitTest
+    (frame : Frame)
+    (event : MouseEvent)
+    : Option String :=
   if event.action != .press || event.button != .left then none
   else frame.hitRegions.find? (fun region => region.contains event.row event.column) |>.map (·.id)
 
 /-- Hit-test a mouse event against the frame currently owned by a screen. -/
-def Screen.hitTest (screen : Screen) (event : MouseEvent) : Option String :=
+def Screen.hitTest
+    (screen : Screen)
+    (event : MouseEvent)
+    : Option String :=
   TermColor.Terminal.hitTest screen.frame event
 
 /-- Move through an ordered set of focus slots, wrapping at either end. -/
-def moveFocus (count current : Nat) (key : Widgets.Key) : Nat :=
+def moveFocus
+    (count current : Nat)
+    (key : Widgets.Key)
+    : Nat :=
   if count == 0 then 0 else
     match key with
     | .tab | .down | .right | .pageDown => (current + 1) % count
     | .shiftTab | .up | .left | .pageUp => (current + count - 1) % count
     | _ => min current (count - 1)
 
-private def runStty (command : String) :=
+private
+def runStty
+    (command : String)
+    :=
   IO.Process.output { cmd := "sh", args := #["-c", command] }
 
 /-- Run an action with character-at-a-time terminal input, restoring the prior mode afterward. -/
@@ -186,8 +208,13 @@ private def readByte : ByteSource := do
   | some byte => pure (.byte byte)
   | none => if ← stdin.isTty then pure .timeout else pure .eof
 
-private def readBytes {m : Type → Type} [Monad m] (readByte : m ByteRead) :
-    Nat → m (Option (List UInt8))
+private
+def readBytes
+    {m : Type → Type}
+    [Monad m]
+    (readByte : m ByteRead)
+    : Nat →
+      m (Option (List UInt8))
   | 0 => pure (some [])
   | count + 1 => do
       match ← readByte with
@@ -197,14 +224,23 @@ private def readBytes {m : Type → Type} [Monad m] (readByte : m ByteRead) :
           | none => pure none
       | .timeout | .eof => pure none
 
-private def isContinuation (byte : UInt8) : Bool :=
+private
+def isContinuation
+    (byte : UInt8)
+    : Bool :=
   0x80 ≤ byte.toNat && byte.toNat ≤ 0xbf
 
-private def validContinuations : List UInt8 → Bool
+private
+def validContinuations
+    : List UInt8 →
+      Bool
   | [] => true
   | byte :: rest => isContinuation byte && validContinuations rest
 
-private def validCodepoint (count value : Nat) : Bool :=
+private
+def validCodepoint
+    (count value : Nat)
+    : Bool :=
   let minimum := match count with
     | 1 => 0x80
     | 2 => 0x800
@@ -283,7 +319,9 @@ partial def readEventFrom {m : Type → Type} [Monad m] (readByte : m ByteRead)
         | none => pure none
 
 /-- Read one complete terminal event while a caller-owned condition holds. -/
-def readEventWhile (keepGoing : IO Bool) : IO (Option Event) :=
+def readEventWhile
+    (keepGoing : IO Bool)
+    : IO (Option Event) :=
   readEventFrom readByte keepGoing
 
 /-- Read one complete key or mouse event, waiting through raw-input timeouts. -/
