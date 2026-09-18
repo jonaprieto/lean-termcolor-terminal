@@ -63,7 +63,8 @@ abbrev ByteSource := IO ByteRead
 private
 def controlKey
     (value : Nat)
-    : Option Widgets.Key :=
+    : Option Widgets.Key
+    :=
   if value == 0 then some (.ctrl '@')
   else if value ≤ 26 then some (.ctrl (Char.ofNat (value + 96)))
   else if value < 32 then some (.ctrl (Char.ofNat (value + 64)))
@@ -72,7 +73,8 @@ def controlKey
 /-- Decode one complete terminal key sequence. -/
 def parseKey
     (input : String)
-    : Option Widgets.Key :=
+    : Option Widgets.Key
+    :=
   match input with
   | "\u001b[A" => some .up
   | "\u001b[B" => some .down
@@ -99,7 +101,8 @@ def parseKey
 private
 def parseMouseButton
     (code : Nat)
-    : MouseButton :=
+    : MouseButton
+    :=
   match code with
   | 0 => .left
   | 1 => .middle
@@ -148,7 +151,8 @@ def parseMouseEvent
 /-- Decode either a complete key sequence or a complete SGR mouse event. -/
 def parseEvent
     (input : String)
-    : Option Event :=
+    : Option Event
+    :=
   match parseMouseEvent input with
   | some event => some (.mouse event)
   | none => match parseKey input with
@@ -159,7 +163,8 @@ def parseEvent
 def hitTest
     (frame : Frame)
     (event : MouseEvent)
-    : Option String :=
+    : Option String
+    :=
   if event.action != .press || event.button != .left then none
   else frame.hitRegions.find? (fun region => region.contains event.row event.column) |>.map (·.id)
 
@@ -167,14 +172,16 @@ def hitTest
 def Screen.hitTest
     (screen : Screen)
     (event : MouseEvent)
-    : Option String :=
+    : Option String
+    :=
   TermColor.Terminal.hitTest screen.frame event
 
 /-- Move through an ordered set of focus slots, wrapping at either end. -/
 def moveFocus
     (count current : Nat)
     (key : Widgets.Key)
-    : Nat :=
+    : Nat
+    :=
   if count == 0 then 0 else
     match key with
     | .tab | .down | .right | .pageDown => (current + 1) % count
@@ -232,7 +239,8 @@ def readBytes
 private
 def isContinuation
     (byte : UInt8)
-    : Bool :=
+    : Bool
+    :=
   0x80 ≤ byte.toNat && byte.toNat ≤ 0xbf
 
 private
@@ -245,7 +253,8 @@ def validContinuations
 private
 def validCodepoint
     (count value : Nat)
-    : Bool :=
+    : Bool
+    :=
   let minimum := match count with
     | 1 => 0x80
     | 2 => 0x800
@@ -347,7 +356,8 @@ def readEventFrom
 /-- Read one complete terminal event while a caller-owned condition holds. -/
 def readEventWhile
     (keepGoing : IO Bool)
-    : IO (Option Event) :=
+    : IO (Option Event)
+    :=
   readEventFrom readByte keepGoing
 
 /-- Read one complete key or mouse event, waiting through raw-input timeouts. -/
