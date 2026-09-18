@@ -93,7 +93,10 @@ namespace EventReader
 def new : IO EventReader := do
   pure { result := ← IO.mkRef none, active := ← IO.mkRef false, task := ← IO.mkRef none }
 
-def ensureReading (reader : EventReader) (keepGoing : IO Bool) : IO Unit := do
+def ensureReading
+    (reader : EventReader)
+    (keepGoing : IO Bool)
+    : IO Unit := do
   unless ← reader.active.get do
     reader.active.set true
     let task ← IO.asTask do
@@ -103,13 +106,17 @@ def ensureReading (reader : EventReader) (keepGoing : IO Bool) : IO Unit := do
         reader.active.set false
     reader.task.set (some task)
 
-def take (reader : EventReader) : IO (Option (Option Event)) := do
+def take
+    (reader : EventReader)
+    : IO (Option (Option Event)) := do
   let result ← reader.result.get
   if result.isSome then
     reader.result.set none
   pure result
 
-def waitStopped (reader : EventReader) : IO Unit := do
+def waitStopped
+    (reader : EventReader)
+    : IO Unit := do
   while ← reader.active.get do
     IO.sleep 1
   match ← reader.task.get with
@@ -129,7 +136,10 @@ structure LoopConfig
   isRunning : Model → Bool := fun _ => true
   mouse : Bool := false
 
-private def currentSize (fallback : Size) : IO Size := do
+private
+def currentSize
+    (fallback : Size)
+    : IO Size := do
   pure ((← terminalSize).getD fallback)
 
 private
@@ -138,9 +148,17 @@ def renderContext
     : ViewContext :=
   { size, area := { top := 1, left := 1, width := size.columns, height := size.rows } }
 
-private def runLoop {Model State : Type} (renderer : Renderer State)
-    (config : LoopConfig Model) (cancellation : Cancellation) (reader : EventReader)
-    (modelRef : IO.Ref Model) (sizeRef : IO.Ref Size) (outputRef : IO.Ref State) : IO Unit := do
+private
+def runLoop
+    {Model State : Type}
+    (renderer : Renderer State)
+    (config : LoopConfig Model)
+    (cancellation : Cancellation)
+    (reader : EventReader)
+    (modelRef : IO.Ref Model)
+    (sizeRef : IO.Ref Size)
+    (outputRef : IO.Ref State)
+    : IO Unit := do
   while config.isRunning (← modelRef.get) && !(← cancellation.isCancelled) do
     reader.ensureReading (do return !(← cancellation.isCancelled))
     let output ← outputRef.get
@@ -160,7 +178,11 @@ private def runLoop {Model State : Type} (renderer : Renderer State)
           modelRef.set (config.update .tick model)
 
 /-- Run a small model/view loop with injectable renderer and guaranteed terminal cleanup. -/
-def run {Model State : Type} (renderer : Renderer State) (config : LoopConfig Model) : IO Unit := do
+def run
+    {Model State : Type}
+    (renderer : Renderer State)
+    (config : LoopConfig Model)
+    : IO Unit := do
   let cancellation ← Cancellation.new
   let reader ← EventReader.new
   let modelRef ← IO.mkRef config.initial

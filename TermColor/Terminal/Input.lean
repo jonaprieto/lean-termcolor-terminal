@@ -107,7 +107,9 @@ def parseMouseButton
   | value => .other value
 
 /-- Decode an SGR (1006) mouse sequence. Coordinates are one-based, like the protocol. -/
-def parseMouseEvent (input : String) : Option MouseEvent := do
+def parseMouseEvent
+    (input : String)
+    : Option MouseEvent := do
   let marker := "\u001b[<".toList
   let chars := input.toList
   if !marker.isPrefixOf chars then none else
@@ -186,7 +188,10 @@ def runStty
   IO.Process.output { cmd := "sh", args := #["-c", command] }
 
 /-- Run an action with character-at-a-time terminal input, restoring the prior mode afterward. -/
-def withRawInput {α : Type} (action : IO α) : IO α := do
+def withRawInput
+    {α : Type}
+    (action : IO α)
+    : IO α := do
   let saved ← runStty "stty -g < /dev/tty"
   if saved.exitCode != 0 then
     throw (IO.userError "could not read terminal settings")
@@ -248,8 +253,13 @@ def validCodepoint
   minimum ≤ value && value ≤ 0x10ffff && !(0xd800 ≤ value && value ≤ 0xdfff)
 
 /-- Decode a UTF-8 character after its first byte; incomplete input falls back to that byte. -/
-private def decodeUtf8 {m : Type → Type} [Monad m] (readByte : m ByteRead) (first : UInt8) :
-    m Char := do
+private
+def decodeUtf8
+    {m : Type → Type}
+    [Monad m]
+    (readByte : m ByteRead)
+    (first : UInt8)
+    : m Char := do
   let value := first.toNat
   let count := if value < 0x80 then 0
     else if value < 0xe0 then 1
@@ -276,8 +286,14 @@ private def decodeUtf8 {m : Type → Type} [Monad m] (readByte : m ByteRead) (fi
             if validCodepoint count codepoint then pure (Char.ofNat codepoint)
             else pure (Char.ofNat value)
 
-private def readCsiWhile {m : Type → Type} [Monad m] (readByte : m ByteRead) (keepGoing : m Bool)
-    (input : String) : m String := do
+private
+def readCsiWhile
+    {m : Type → Type}
+    [Monad m]
+    (readByte : m ByteRead)
+    (keepGoing : m Bool)
+    (input : String)
+    : m String := do
   let rec go (input : String) (fuel : Nat) : m String := do
     if !(← keepGoing) then pure input else
       match fuel with
@@ -291,8 +307,13 @@ private def readCsiWhile {m : Type → Type} [Monad m] (readByte : m ByteRead) (
           | .timeout | .eof => pure input
   go input 32
 
-private def readEscapeSequenceWhile {m : Type → Type} [Monad m] (readByte : m ByteRead)
-    (keepGoing : m Bool) : m String := do
+private
+def readEscapeSequenceWhile
+    {m : Type → Type}
+    [Monad m]
+    (readByte : m ByteRead)
+    (keepGoing : m Bool)
+    : m String := do
   if !(← keepGoing) then pure "" else
     match ← readByte with
     | .byte 91 => readCsiWhile readByte keepGoing "["
@@ -301,8 +322,13 @@ private def readEscapeSequenceWhile {m : Type → Type} [Monad m] (readByte : m 
 
 /-- Decode one event from an injectable byte source. -/
 -- partiality: timeout input is external; callers provide the stopping condition.
-partial def readEventFrom {m : Type → Type} [Monad m] (readByte : m ByteRead)
-    (keepGoing : m Bool) : m (Option Event) := do
+partial
+def readEventFrom
+    {m : Type → Type}
+    [Monad m]
+    (readByte : m ByteRead)
+    (keepGoing : m Bool)
+    : m (Option Event) := do
   if !(← keepGoing) then pure none else
     match ← readByte with
     | .timeout => readEventFrom readByte keepGoing
