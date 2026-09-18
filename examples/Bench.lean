@@ -12,7 +12,10 @@ open TermColor.Terminal
 private def frames : Nat := 2_000
 private def repetitions : Nat := 4
 
-private def runBuffer (size : Size) : IO (Nat × Nat) := do
+private
+def runBuffer
+    (size : Size)
+    : IO (Nat × Nat) := do
   let start ← IO.monoNanosNow
   let mut screen := BufferScreen.empty
   let mut bytes := 0
@@ -37,7 +40,11 @@ private def runLines : IO (Nat × Nat) := do
   let elapsed := (← IO.monoNanosNow) - start
   pure (elapsed, bytes)
 
-private def summarize (name : String) (run : IO (Nat × Nat)) : IO Unit := do
+private
+def summarize
+    (name : String)
+    (run : IO (Nat × Nat))
+    : IO Unit := do
   let _ ← run
   let mut samples := []
   let mut bytes := 0

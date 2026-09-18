@@ -290,7 +290,11 @@ def map
   | .task work => .task (do return convert (← work))
 
 /-- Execute a command tree with a caller-owned message sink. -/
-def run {Msg : Type} (send : Msg → IO Unit) (command : Command Msg) : IO Unit := do
+def run
+    {Msg : Type}
+    (send : Msg → IO Unit)
+    (command : Command Msg)
+    : IO Unit := do
   let mut pending := [command]
   while !pending.isEmpty do
     match pending with

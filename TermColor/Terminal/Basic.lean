@@ -88,11 +88,17 @@ def write (text : String) : IO Unit := IO.print text
 def flush : IO Unit := do
   (← IO.getStdout).flush
 
-private def writeFlush (text : String) : IO Unit := do
+private
+def writeFlush
+    (text : String)
+    : IO Unit := do
   write text
   flush
 
-private def writeControl (sequence : String) : IO Unit := do
+private
+def writeControl
+    (sequence : String)
+    : IO Unit := do
   if ← terminalControlEnabled then
     writeFlush sequence
 
@@ -175,7 +181,10 @@ def parseSize
   | rows :: columns :: _ => some { columns, rows }
   | _ => none
 
-private def environmentSize (columns rows : Option String) : Option Size := do
+private
+def environmentSize
+    (columns rows : Option String)
+    : Option Size := do
   let columns ← columns >>= parsePositiveNat
   let rows ← rows >>= parsePositiveNat
   pure { columns, rows }
@@ -333,7 +342,9 @@ def render
   screen.renderFrame { text } choice
 
 /-- Finish a screen and leave the cursor below its last rendered line. -/
-def finish (screen : Screen) : IO Screen := do
+def finish
+    (screen : Screen)
+    : IO Screen := do
   if ← terminalControlEnabled then
     write (cursorToRowSequence screen.previous.length ++ "\n")
     flush
@@ -427,7 +438,10 @@ def finishSequence
   (if state.lineCount == 0 then "" else "\n", {})
 
 /-- Redraw a multi-line region and flush stdout. -/
-def update (state : LiveRegion) (text : String) : IO LiveRegion := do
+def update
+    (state : LiveRegion)
+    (text : String)
+    : IO LiveRegion := do
   if ← terminalControlEnabled then
     let (output, next) := state.updateSequence text
     write output
@@ -438,7 +452,12 @@ def update (state : LiveRegion) (text : String) : IO LiveRegion := do
     flush
     pure { state with lineCount := visibleLineCount text }
 
-private def renderTextAtWidth (width : Nat) (text : Text) (choice : ColorChoice) : IO String := do
+private
+def renderTextAtWidth
+    (width : Nat)
+    (text : Text)
+    (choice : ColorChoice)
+    : IO String := do
   TermColor.render (Layout.wrapLines width text) choice
 
 /-- Render styled text at a supplied width, redraw a multi-line region, and flush stdout. -/
@@ -465,7 +484,9 @@ def updateText
   state.update (← renderTextAtWidth width text choice)
 
 /-- Leave the live region in place and move to the next line. -/
-def finish (state : LiveRegion) : IO LiveRegion := do
+def finish
+    (state : LiveRegion)
+    : IO LiveRegion := do
   let (output, next) := state.finishSequence
   write output
   flush
@@ -474,12 +495,18 @@ def finish (state : LiveRegion) : IO LiveRegion := do
 end LiveRegion
 
 /-- Hide the cursor for an action and restore it even when the action fails. -/
-def withHiddenCursor {α : Type} (action : IO α) : IO α := do
+def withHiddenCursor
+    {α : Type}
+    (action : IO α)
+    : IO α := do
   hideCursor
   try action finally showCursor
 
 /-- Run an action in the alternate screen buffer and restore the normal screen afterward. -/
-def withAlternateScreen {α : Type} (action : IO α) : IO α := do
+def withAlternateScreen
+    {α : Type}
+    (action : IO α)
+    : IO α := do
   enterAlternateScreen
   try action finally exitAlternateScreen
 
