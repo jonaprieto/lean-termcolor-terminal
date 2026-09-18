@@ -28,8 +28,8 @@ theorem ui_row_composes_columns :
       "a b" := by
   native_decide
 
-theorem ui_constraints_resolve_fixed_percent_fill :
-    resolveConstraints 20 1 [.fixed 3, .fill, .percent 25] = [3, 11, 4] := by
+theorem ui_constraints_resolve_fixed_percent_fill
+    : resolveConstraints 20 1 [.fixed 3, .fill, .percent 25] = [3, 11, 4] := by
   native_decide
 
 theorem ui_prefix_names_child_targets :
@@ -40,8 +40,8 @@ theorem ui_prefix_names_child_targets :
       rendered.focusables = ["pane/button"] ∧ rendered.focus = some "pane/button" := by
   native_decide
 
-theorem focus_ring_traverses_composed_children :
-    let rendered : Rendered :=
+theorem focus_ring_traverses_composed_children
+    : let rendered : Rendered :=
       { focusables := ["jobs/one", "jobs/two"], focus := some "jobs/one" }
     let ring := FocusRing.fromRendered rendered
     ring.currentId = some "jobs/one" ∧
@@ -49,8 +49,8 @@ theorem focus_ring_traverses_composed_children :
       (FocusRing.move .shiftTab ring).currentId = some "jobs/two" := by
   native_decide
 
-theorem target_routes_focus_and_mouse_events :
-    let rendered : Rendered :=
+theorem target_routes_focus_and_mouse_events
+    : let rendered : Rendered :=
       { hitRegions := [{ id := "jobs/one", top := 2, bottom := 2, left := 3, right := 6 }]
         focusables := ["jobs/one"], focus := some "jobs/one" }
     let ring := FocusRing.fromRendered rendered
@@ -59,8 +59,8 @@ theorem target_routes_focus_and_mouse_events :
         { button := .left, action := .press, column := 4, row := 2 }) = some "jobs/one" := by
   native_decide
 
-theorem component_maps_parent_messages :
-    let child : Component Nat Nat :=
+theorem component_maps_parent_messages
+    : let child : Component Nat Nat :=
       { view := fun _ model => { text := Text.plain (toString model) }
         update := fun message model => (model + message, []) }
     let parent := Component.mapMsg (fun message => message + 10)
@@ -68,8 +68,8 @@ theorem component_maps_parent_messages :
     (parent.update 12 3).1 = 5 := by
   native_decide
 
-theorem buffer_round_trips_fixed_surface :
-    (Buffer.fromText { columns := 4, rows := 2 } (Text.plain "ab\nc")).toText.plainText =
+theorem buffer_round_trips_fixed_surface
+    : (Buffer.fromText { columns := 4, rows := 2 } (Text.plain "ab\nc")).toText.plainText =
       "ab  \nc   " := by
   native_decide
 

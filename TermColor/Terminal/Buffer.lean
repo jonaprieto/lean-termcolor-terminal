@@ -37,22 +37,35 @@ structure Buffer where
 
 namespace Buffer
 
-def empty (width height : Nat) : Buffer :=
+def empty
+    (width height : Nat)
+    : Buffer :=
   { width, height, cells := Array.replicate (width * height) blankCell }
 
 private def index (buffer : Buffer) (column row : Nat) : Nat := row * buffer.width + column
 
-def get (buffer : Buffer) (column row : Nat) : Cell :=
+def get
+    (buffer : Buffer)
+    (column row : Nat)
+    : Cell :=
   if column < buffer.width && row < buffer.height then
     buffer.cells.getD (index buffer column row) blankCell
   else blankCell
 
-def set (buffer : Buffer) (column row : Nat) (cell : Cell) : Buffer :=
+def set
+    (buffer : Buffer)
+    (column row : Nat)
+    (cell : Cell)
+    : Buffer :=
   if column < buffer.width && row < buffer.height then
     { buffer with cells := buffer.cells.set! (index buffer column row) cell }
   else buffer
 
-private def clearWideAt (buffer : Buffer) (column row : Nat) : Buffer :=
+private
+def clearWideAt
+    (buffer : Buffer)
+    (column row : Nat)
+    : Buffer :=
   let current := buffer.get column row
   let buffer := if current.continuation && column > 0 then
       buffer.set (column - 1) row blankCell
@@ -62,7 +75,12 @@ private def clearWideAt (buffer : Buffer) (column row : Nat) : Buffer :=
     buffer.set (column + 1) row blankCell
   else buffer
 
-private def appendZeroWidth (buffer : Buffer) (column row : Nat) (character : Char) : Buffer :=
+private
+def appendZeroWidth
+    (buffer : Buffer)
+    (column row : Nat)
+    (character : Char)
+    : Buffer :=
   if column == 0 || row >= buffer.height then buffer
   else
     let previousColumn := if (buffer.get (column - 1) row).continuation && column > 1
@@ -71,8 +89,14 @@ private def appendZeroWidth (buffer : Buffer) (column row : Nat) (character : Ch
     if previous.continuation then buffer
     else buffer.set previousColumn row { previous with glyph := previous.glyph.push character }
 
-private def writeChar (buffer : Buffer) (column row : Nat) (character : Char) (style : Style)
-    (link : Option String) : Buffer × Nat × Nat :=
+private
+def writeChar
+    (buffer : Buffer)
+    (column row : Nat)
+    (character : Char)
+    (style : Style)
+    (link : Option String)
+    : Buffer × Nat × Nat :=
   if character == '\n' then
     (buffer, 0, row + 1)
   else
@@ -90,14 +114,25 @@ private def writeChar (buffer : Buffer) (column row : Nat) (character : Char) (s
     else
       (buffer, column, row)
 
-private def writeChars (buffer : Buffer) (column row : Nat) (style : Style) (link : Option String) :
-    List Char → Buffer × Nat × Nat
+private
+def writeChars
+    (buffer : Buffer)
+    (column row : Nat)
+    (style : Style)
+    (link : Option String)
+    : List Char →
+      Buffer × Nat × Nat
   | [] => (buffer, column, row)
   | character :: rest =>
       let (buffer, column, row) := writeChar buffer column row character style link
       writeChars buffer column row style link rest
 
-private def writeSegments (buffer : Buffer) (column row : Nat) : List Segment → Buffer × Nat × Nat
+private
+def writeSegments
+    (buffer : Buffer)
+    (column row : Nat)
+    : List Segment →
+      Buffer × Nat × Nat
   | [] => (buffer, column, row)
   | segment :: rest =>
       let (buffer, column, row) :=
@@ -105,33 +140,53 @@ private def writeSegments (buffer : Buffer) (column row : Nat) : List Segment �
       writeSegments buffer column row rest
 
 /-- Write styled text at a zero-based cell coordinate, clipping at the surface boundary. -/
-def writeText (buffer : Buffer) (column row : Nat) (text : Text) : Buffer :=
+def writeText
+    (buffer : Buffer)
+    (column row : Nat)
+    (text : Text)
+    : Buffer :=
   (writeSegments buffer column row text.segments).1
 
 /-- Render a wrapped text value into a fixed-size surface. -/
-def fromText (size : Size) (text : Text) : Buffer :=
+def fromText
+    (size : Size)
+    (text : Text)
+    : Buffer :=
   writeText (empty size.columns size.rows) 0 0
     (Layout.wrapLines (max 1 size.columns) text)
 
-def cellText (cell : Cell) : Text :=
+def cellText
+    (cell : Cell)
+    : Text :=
   if cell.continuation then Text.empty
   else { segments := [{ text := cell.glyph, style := cell.style, link := cell.link }] }
 
-def rowText (buffer : Buffer) (row : Nat) : Text :=
+def rowText
+    (buffer : Buffer)
+    (row : Nat)
+    : Text :=
   Text.concat ((List.range buffer.width).map fun column => cellText (buffer.get column row))
 
-def rowTextRange (buffer : Buffer) (row start finish : Nat) : Text :=
+def rowTextRange
+    (buffer : Buffer)
+    (row start finish : Nat)
+    : Text :=
   Text.concat ((List.range (finish + 1 - start)).map fun offset =>
     cellText (buffer.get (start + offset) row))
 
-def toText (buffer : Buffer) : Text :=
+def toText
+    (buffer : Buffer)
+    : Text :=
   Layout.joinLines ((List.range buffer.height).map (buffer.rowText ·))
 
 end Buffer
 
 private def csi : String := "\u001b["
 
-private def cursorToCellSequence (row column : Nat) : String :=
+private
+def cursorToCellSequence
+    (row column : Nat)
+    : String :=
   csi ++ toString (row + 1) ++ ";" ++ toString (column + 1) ++ "H"
 
 structure BufferScreen where
@@ -142,7 +197,11 @@ namespace BufferScreen
 
 def empty : BufferScreen := {}
 
-private def rowBounds (old next : Buffer) (row : Nat) : Option (Nat × Nat) :=
+private
+def rowBounds
+    (old next : Buffer)
+    (row : Nat)
+    : Option (Nat × Nat) :=
   let bounds : Option (Nat × Nat) := (List.range next.width).foldl
     (fun found column =>
       if old.get column row != next.get column row then
@@ -161,12 +220,18 @@ private def rowBounds (old next : Buffer) (row : Nat) : Option (Nat × Nat) :=
         then last + 1 else last
       some (first, last)
 
-private def fullSequence (buffer : Buffer) : Text :=
+private
+def fullSequence
+    (buffer : Buffer)
+    : Text :=
   Text.concat ((List.range buffer.height).map fun row =>
     Text.plain (cursorToCellSequence row 0) ++ buffer.rowText row)
 
 /-- Pure cell-level output and next state. Initial or resized surfaces redraw fully. -/
-def diffSequence (screen : BufferScreen) (next : Buffer) : Text × BufferScreen :=
+def diffSequence
+    (screen : BufferScreen)
+    (next : Buffer)
+    : Text × BufferScreen :=
   match screen.previous with
   | none => (fullSequence next, { previous := some next })
   | some old =>

@@ -31,8 +31,9 @@ theorem parse_key_sequences :
       parseKey "\u007f" = some .backspace := by
   decide
 
-theorem parse_key_char_and_reject_partial_sequence :
-    parseKey "x" = some (.char 'x') ∧ parseKey "\u001b[" = none := by
+theorem parse_key_char_and_reject_partial_sequence
+    : parseKey "x" = some (.char 'x') ∧
+      parseKey "\u001b[" = none := by
   decide
 
 theorem parse_key_controls_and_extended_sequences :
@@ -47,32 +48,35 @@ private def fixtureByte : StateM (List ByteRead) ByteRead := fun input =>
   | [] => (.eof, [])
   | byte :: rest => (byte, rest)
 
-private def fixtureEvent (keepGoing : Bool) (input : List ByteRead) :
-    Option Event × List ByteRead :=
+private
+def fixtureEvent
+    (keepGoing : Bool)
+    (input : List ByteRead)
+    : Option Event × List ByteRead :=
   (readEventFrom fixtureByte (pure keepGoing)).run input
 
-theorem input_fixture_retries_timeout :
-    fixtureEvent true [.timeout, .byte 120] = (some (.key (.char 'x')), []) := by
+theorem input_fixture_retries_timeout
+    : fixtureEvent true [.timeout, .byte 120] = (some (.key (.char 'x')), []) := by
   native_decide
 
-theorem input_fixture_eof_stops :
-    fixtureEvent true [.eof] = (none, []) := by
+theorem input_fixture_eof_stops
+    : fixtureEvent true [.eof] = (none, []) := by
   native_decide
 
-theorem input_fixture_standalone_escape :
-    fixtureEvent true [.byte 27, .timeout] = (some (.key .escape), []) := by
+theorem input_fixture_standalone_escape
+    : fixtureEvent true [.byte 27, .timeout] = (some (.key .escape), []) := by
   native_decide
 
-theorem input_fixture_reads_csi_sequence :
-    fixtureEvent true [.byte 27, .byte 91, .byte 65] = (some (.key .up), []) := by
+theorem input_fixture_reads_csi_sequence
+    : fixtureEvent true [.byte 27, .byte 91, .byte 65] = (some (.key .up), []) := by
   native_decide
 
-theorem input_fixture_preserves_invalid_byte_handling :
-    fixtureEvent true [.byte 255] = (some (.key (.char (Char.ofNat 255))), []) := by
+theorem input_fixture_preserves_invalid_byte_handling
+    : fixtureEvent true [.byte 255] = (some (.key (.char (Char.ofNat 255))), []) := by
   native_decide
 
-theorem input_fixture_cancellation_does_not_read :
-    fixtureEvent false [.byte 120] = (none, [.byte 120]) := by
+theorem input_fixture_cancellation_does_not_read
+    : fixtureEvent false [.byte 120] = (none, [.byte 120]) := by
   native_decide
 
 theorem parse_sgr_mouse_event :
@@ -102,8 +106,8 @@ theorem hit_region_contains_inclusive_boundaries :
     region.contains 2 3 ∧ region.contains 4 8 ∧ !region.contains 1 3 ∧ !region.contains 3 9 := by
   decide
 
-theorem hit_test_accepts_only_left_presses :
-    let frame : Frame :=
+theorem hit_test_accepts_only_left_presses
+    : let frame : Frame :=
       { hitRegions := [{ id := "job", top := 2, bottom := 4, left := 3, right := 8 }] }
     hitTest frame { button := .left, action := .press, row := 3, column := 4 } = some "job" ∧
       hitTest frame { button := .left, action := .release, row := 3, column := 4 } = none ∧
@@ -111,8 +115,8 @@ theorem hit_test_accepts_only_left_presses :
       hitTest frame { button := .none, action := .scrollUp, row := 3, column := 4 } = none := by
   native_decide
 
-theorem hit_test_uses_first_overlapping_region :
-    let frame : Frame :=
+theorem hit_test_uses_first_overlapping_region
+    : let frame : Frame :=
       { hitRegions :=
         [{ id := "outer", top := 1, bottom := 5, left := 1, right := 10 },
          { id := "inner", top := 2, bottom := 4, left := 3, right := 8 }] }
@@ -141,8 +145,8 @@ theorem mouse_capture_sequences_are_scoped :
       mouseCaptureSequence false false = "\u001b[?1006l\u001b[?1000l" := by
   decide
 
-theorem focus_wraps :
-    moveFocus 3 2 .tab = 0 ∧
+theorem focus_wraps
+    : moveFocus 3 2 .tab = 0 ∧
       moveFocus 3 0 .left = 2 ∧
       moveFocus 0 4 .tab = 0 := by
   decide
@@ -163,8 +167,8 @@ theorem alternate_screen_sequences :
 theorem hide_show_cursor_sequences :
     hideCursorSequence = "\u001b[?25l" ∧ showCursorSequence = "\u001b[?25h" := by decide
 
-theorem parse_size_rows_columns :
-    (parseSize "24 80\n").map (fun size => (size.columns, size.rows)) = some (80, 24) := by
+theorem parse_size_rows_columns
+    : (parseSize "24 80\n").map (fun size => (size.columns, size.rows)) = some (80, 24) := by
   native_decide
 
 theorem parse_size_accepts_mixed_whitespace :
@@ -204,8 +208,8 @@ theorem live_region_finishes_with_newline :
 theorem live_region_empty_finish_is_safe :
     LiveRegion.start.finishSequence.1 = "" := by decide
 
-theorem live_progress_uses_widgets :
-    (Widgets.progressBar { width := 4 } { current := 1, total := 2 }).plainText =
+theorem live_progress_uses_widgets
+    : (Widgets.progressBar { width := 4 } { current := 1, total := 2 }).plainText =
       "[━━──] 50%" := by native_decide
 
 theorem live_indeterminate_progress_uses_widgets :
@@ -218,8 +222,8 @@ theorem live_spinner_uses_widgets :
       { frame := 1 }).plainText =
       "+" := by native_decide
 
-theorem live_shimmer_uses_widgets :
-    (Widgets.shimmer { band := 2 } { frame := 3 } (Text.plain "hi")).plainText =
+theorem live_shimmer_uses_widgets
+    : (Widgets.shimmer { band := 2 } { frame := 3 } (Text.plain "hi")).plainText =
       "hi" := by native_decide
 
 theorem live_status_uses_widgets :

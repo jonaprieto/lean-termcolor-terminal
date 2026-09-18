@@ -23,15 +23,22 @@ namespace Terminal
 
 private def csi : String := "\u001b["
 
-private def visibleLineCount (text : String) : Nat :=
+private
+def visibleLineCount
+    (text : String)
+    : Nat :=
   if text.isEmpty then 0 else text.splitOn "\n" |>.length
 
 /-- Move the cursor up by `count` rows, or emit nothing for zero. -/
-def cursorUpSequence (count : Nat) : String :=
+def cursorUpSequence
+    (count : Nat)
+    : String :=
   if count == 0 then "" else csi ++ toString count ++ "A"
 
 /-- Move the cursor down by `count` rows, or emit nothing for zero. -/
-def cursorDownSequence (count : Nat) : String :=
+def cursorDownSequence
+    (count : Nat)
+    : String :=
   if count == 0 then "" else csi ++ toString count ++ "B"
 
 /-- Move to a one-based terminal column. -/
@@ -62,7 +69,10 @@ def hideCursorSequence : String := csi ++ "?25l"
 def showCursorSequence : String := csi ++ "?25h"
 
 /-- Whether a TTY and terminal declaration allow cursor-control sequences. -/
-def terminalControlAllowed (isTty : Bool) (term : Option String) : Bool :=
+def terminalControlAllowed
+    (isTty : Bool)
+    (term : Option String)
+    : Bool :=
   if !isTty then false else
     match term with
     | some "dumb" | some "unknown" => false
@@ -87,11 +97,17 @@ private def writeControl (sequence : String) : IO Unit := do
     writeFlush sequence
 
 /-- Render styled text using terminal detection and write it without a newline. -/
-def writeText (text : Text) (choice : ColorChoice := .auto) : IO Unit := do
+def writeText
+    (text : Text)
+    (choice : ColorChoice := .auto)
+    : IO Unit := do
   write (← TermColor.render text choice)
 
 /-- Render styled text using terminal detection and write it with a newline. -/
-def writeTextLine (text : Text) (choice : ColorChoice := .auto) : IO Unit := do
+def writeTextLine
+    (text : Text)
+    (choice : ColorChoice := .auto)
+    : IO Unit := do
   write (← TermColor.render (text ++ Text.plain "\n") choice)
 
 /-- Erase the current line and return to its first column. -/
@@ -144,11 +160,16 @@ structure Size where
   rows : Nat
   deriving BEq, DecidableEq, Repr, Inhabited
 
-private def parsePositiveNat (text : String) : Option Nat :=
+private
+def parsePositiveNat
+    (text : String)
+    : Option Nat :=
   text.trimAscii.toNat? |>.filter (· > 0)
 
 /-- Parse the `rows columns` output convention used by `stty size`. -/
-def parseSize (output : String) : Option Size :=
+def parseSize
+    (output : String)
+    : Option Size :=
   let values := output.splitToList (·.isWhitespace) |>.filterMap parsePositiveNat
   match values with
   | rows :: columns :: _ => some { columns, rows }
@@ -207,7 +228,10 @@ def terminalWidth : IO Nat := do
   | some size => pure size.columns
   | none => pure Layout.defaultWidth
 
-private def cursorToRowSequence (row : Nat) : String :=
+private
+def cursorToRowSequence
+    (row : Nat)
+    : String :=
   csi ++ toString (row + 1) ++ ";1H"
 
 /-- A stable application-owned rectangle in one-based terminal coordinates. -/
@@ -220,7 +244,10 @@ structure HitRegion where
   deriving BEq, DecidableEq, Repr
 
 /-- Whether a one-based terminal coordinate lies inside a hit region. -/
-def HitRegion.contains (region : HitRegion) (row column : Nat) : Bool :=
+def HitRegion.contains
+    (region : HitRegion)
+    (row column : Nat)
+    : Bool :=
   region.top ≤ row && row ≤ region.bottom && region.left ≤ column && column ≤ region.right
 
 /-- A pure frame supplied to `Screen.renderFrame`. -/
@@ -249,7 +276,10 @@ def start : IO Screen := do
   pure { size := ← terminalSize }
 
 /-- Pure line-granularity diff from the previous screen to `next`. -/
-def diffSequence (screen : Screen) (next : List String) : String × Screen :=
+def diffSequence
+    (screen : Screen)
+    (next : List String)
+    : String × Screen :=
   let count := max screen.previous.length next.length
   let pieces := (List.range count).foldl (fun pieces row =>
     let oldLine := screen.previous.getD row ""
@@ -258,7 +288,11 @@ def diffSequence (screen : Screen) (next : List String) : String × Screen :=
     else (cursorToRowSequence row ++ clearLineSequence ++ newLine) :: pieces) []
   (String.join pieces.reverse, { screen with previous := next })
 
-private def renderedLines (size : Option Size) (text : Text) : Text :=
+private
+def renderedLines
+    (size : Option Size)
+    (text : Text)
+    : Text :=
   let wrapped := Layout.splitLines (Layout.wrapLines
     (size.map (·.columns) |>.getD Layout.defaultWidth) text)
   let lines := match size with
@@ -267,7 +301,11 @@ private def renderedLines (size : Option Size) (text : Text) : Text :=
   Layout.joinLines lines
 
 /-- Render a frame, atomically retaining its hit regions after the write succeeds. -/
-def renderFrame (screen : Screen) (frame : Frame) (choice : ColorChoice := .auto) : IO Screen := do
+def renderFrame
+    (screen : Screen)
+    (frame : Frame)
+    (choice : ColorChoice := .auto)
+    : IO Screen := do
   let size := (← terminalSize).orElse (fun _ => screen.size)
   if screen.frame == frame && screen.size == size then
     return screen
@@ -287,7 +325,11 @@ def renderFrame (screen : Screen) (frame : Frame) (choice : ColorChoice := .auto
     pure { nextScreen with frame }
 
 /-- Render a screen, rewriting only lines whose visible text changed. -/
-def render (screen : Screen) (text : Text) (choice : ColorChoice := .auto) : IO Screen :=
+def render
+    (screen : Screen)
+    (text : Text)
+    (choice : ColorChoice := .auto)
+    : IO Screen :=
   screen.renderFrame { text } choice
 
 /-- Finish a screen and leave the cursor below its last rendered line. -/
@@ -300,22 +342,32 @@ def finish (screen : Screen) : IO Screen := do
 end Screen
 
 /-- Enable SGR mouse events, optionally including drag reporting. -/
-def mouseCaptureSequence (enabled drag : Bool) : String :=
+def mouseCaptureSequence
+    (enabled drag : Bool)
+    : String :=
   if enabled then
     csi ++ "?" ++ (if drag then "1002" else "1000") ++ "h" ++ csi ++ "?1006h"
   else
     csi ++ "?1006l" ++ csi ++ "?" ++ (if drag then "1002" else "1000") ++ "l"
 
 /-- Enable mouse reporting when stdout is a capable terminal. -/
-def enableMouse (drag : Bool := false) : IO Unit :=
+def enableMouse
+    (drag : Bool := false)
+    : IO Unit :=
   writeControl (mouseCaptureSequence true drag)
 
 /-- Disable mouse reporting. -/
-def disableMouse (drag : Bool := false) : IO Unit :=
+def disableMouse
+    (drag : Bool := false)
+    : IO Unit :=
   writeControl (mouseCaptureSequence false drag)
 
 /-- Scope mouse reporting and restore the terminal mode even when the action fails. -/
-def withMouseCapture {α : Type} (action : IO α) (drag : Bool := false) : IO α := do
+def withMouseCapture
+    {α : Type}
+    (action : IO α)
+    (drag : Bool := false)
+    : IO α := do
   enableMouse drag
   try action finally disableMouse drag
 
@@ -330,20 +382,32 @@ namespace LiveRegion
 def start : LiveRegion := {}
 
 /-- Use a supplied width for subsequent text updates. -/
-def setWidth (state : LiveRegion) (width : Nat) : LiveRegion :=
+def setWidth
+    (state : LiveRegion)
+    (width : Nat)
+    : LiveRegion :=
   { state with width := some width }
 
-private def clearBelowSequence (count : Nat) : String :=
+private
+def clearBelowSequence
+    (count : Nat)
+    : String :=
   if count == 0 then "" else
     let output := (List.range count).foldl
       (fun result _ => result ++ cursorDownSequence 1 ++ clearLineSequence) ""
     output ++ cursorUpSequence count ++ "\r"
 
-private def clearAndWriteLines (text : String) : String :=
+private
+def clearAndWriteLines
+    (text : String)
+    : String :=
   String.join (((text.splitOn "\n").map fun line => clearLineSequence ++ line).intersperse "\n")
 
 /-- Pure output and next state for a multi-line redraw. -/
-def updateSequence (state : LiveRegion) (text : String) : String × LiveRegion :=
+def updateSequence
+    (state : LiveRegion)
+    (text : String)
+    : String × LiveRegion :=
   let oldCount := state.lineCount
   let newCount := visibleLineCount text
   let lead := if oldCount == 0 then "" else cursorUpSequence (oldCount - 1) ++ "\r"
@@ -357,7 +421,9 @@ def updateSequence (state : LiveRegion) (text : String) : String × LiveRegion :
   (lead ++ body ++ trailing, { state with lineCount := newCount })
 
 /-- Pure output and next state for finishing a live region. -/
-def finishSequence (state : LiveRegion) : String × LiveRegion :=
+def finishSequence
+    (state : LiveRegion)
+    : String × LiveRegion :=
   (if state.lineCount == 0 then "" else "\n", {})
 
 /-- Redraw a multi-line region and flush stdout. -/
@@ -376,16 +442,23 @@ private def renderTextAtWidth (width : Nat) (text : Text) (choice : ColorChoice)
   TermColor.render (Layout.wrapLines width text) choice
 
 /-- Render styled text at a supplied width, redraw a multi-line region, and flush stdout. -/
-def updateTextAtWidth (state : LiveRegion) (width : Nat) (text : Text)
-    (choice : ColorChoice := .auto) : IO LiveRegion := do
+def updateTextAtWidth
+    (state : LiveRegion)
+    (width : Nat)
+    (text : Text)
+    (choice : ColorChoice := .auto)
+    : IO LiveRegion := do
   (state.setWidth width).update (← renderTextAtWidth width text choice)
 
 /-- Render styled text at the current terminal width, redraw the region, and flush stdout.
 
 When the region has no explicit width, the terminal is queried for every update so live output
 can reflow after a window resize. -/
-def updateText (state : LiveRegion) (text : Text)
-    (choice : ColorChoice := .auto) : IO LiveRegion := do
+def updateText
+    (state : LiveRegion)
+    (text : Text)
+    (choice : ColorChoice := .auto)
+    : IO LiveRegion := do
   let width ← match state.width with
     | some width => pure width
     | none => terminalWidth

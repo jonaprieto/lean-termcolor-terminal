@@ -41,7 +41,9 @@ private inductive SessionMessage where
   | completed (id : String) (success : Bool)
   | input (event : Event)
 
-private def jobConfig : CollapsibleConfig :=
+private
+def jobConfig
+    : CollapsibleConfig :=
   { collapsedMarker := Text.styled "▸ " (Style.fg demoPalette.cyan)
     , expandedMarker := Text.styled "▾ " (Style.fg demoPalette.cyan)
     , summaryStyle := Style.fg demoPalette.foreground
@@ -52,41 +54,77 @@ private def jobConfig : CollapsibleConfig :=
     , overflowText := Text.styled "… more" (Style.fg demoPalette.yellow)
     , emptyText := Text.styled "(no logs)" (Style.dim <+> Style.fg demoPalette.comment) }
 
-private def jobStatusText : JobStatus → Text
+private
+def jobStatusText
+    : JobStatus →
+      Text
   | .running => Text.styled "running" (Style.fg demoPalette.yellow)
   | .success => Text.styled "done" (Style.fg demoPalette.green)
   | .failure => Text.styled "failed" (Style.fg demoPalette.red)
 
-private def jobSummary (job : JobState) : Text :=
+private
+def jobSummary
+    (job : JobState)
+    : Text :=
   Text.plain job.title ++ Text.plain " · " ++ jobStatusText job.status ++
     Text.plain s!" · {job.logs.length} logs"
 
-private def jobBody (job : JobState) : Text :=
+private
+def jobBody
+    (job : JobState)
+    : Text :=
   Text.plain (String.join (job.logs.intersperse "\n"))
 
-private def retainLogs (logs : List String) : List String :=
+private
+def retainLogs
+    (logs : List String)
+    : List String :=
   logs.drop (logs.length - jobBodyLimit)
 
-private def alterJob (id : String) (change : JobState → JobState) : List JobState → List JobState
+private
+def alterJob
+    (id : String)
+    (change : JobState → JobState)
+    : List JobState →
+      List JobState
   | [] => []
   | job :: rest =>
       if job.id == id then change job :: rest else job :: alterJob id change rest
 
-private def focusJob (id : String) (jobs : List JobState) : List JobState :=
+private
+def focusJob
+    (id : String)
+    (jobs : List JobState)
+    : List JobState :=
   jobs.map fun job => { job with widget := { job.widget with focused := job.id == id } }
 
-private def focusedIndex (jobs : List JobState) : Nat :=
+private
+def focusedIndex
+    (jobs : List JobState)
+    : Nat :=
   jobs.findIdx? (·.widget.focused) |>.getD 0
 
-private def focusByKey (key : Key) (jobs : List JobState) : List JobState :=
+private
+def focusByKey
+    (key : Key)
+    (jobs : List JobState)
+    : List JobState :=
   let index := moveFocus jobs.length (focusedIndex jobs) key
   jobs.mapIdx fun index' job =>
     { job with widget := { job.widget with focused := index' == index } }
 
-private def focusedJob (jobs : List JobState) : Option JobState :=
+private
+def focusedJob
+    (jobs : List JobState)
+    : Option JobState :=
   jobs.find? (·.widget.focused)
 
-private def updateFocusedJob (width : Nat) (key : Key) (jobs : List JobState) : List JobState :=
+private
+def updateFocusedJob
+    (width : Nat)
+    (key : Key)
+    (jobs : List JobState)
+    : List JobState :=
   match focusedJob jobs with
   | none => jobs
   | some job =>
@@ -94,10 +132,18 @@ private def updateFocusedJob (width : Nat) (key : Key) (jobs : List JobState) : 
         { job with widget :=
             handleCollapsibleKey jobConfig width (jobBody job) key job.widget }) jobs
 
-private def appendJobLog (id line : String) (jobs : List JobState) : List JobState :=
+private
+def appendJobLog
+    (id line : String)
+    (jobs : List JobState)
+    : List JobState :=
   alterJob id (fun job => { job with logs := retainLogs (job.logs ++ [line]) }) jobs
 
-private def applyWorkerMessage (message : SessionMessage) (jobs : List JobState) : List JobState :=
+private
+def applyWorkerMessage
+    (message : SessionMessage)
+    (jobs : List JobState)
+    : List JobState :=
   match message with
   | .started id => alterJob id (fun job => { job with status := .running }) jobs
   | .log id line => appendJobLog id line jobs
@@ -105,7 +151,11 @@ private def applyWorkerMessage (message : SessionMessage) (jobs : List JobState)
       alterJob id (fun job => { job with status := if success then .success else .failure }) jobs
   | .input _ => jobs
 
-private def jobView (width : Nat) (job : JobState) : View :=
+private
+def jobView
+    (width : Nat)
+    (job : JobState)
+    : View :=
   { render := fun context =>
       let rendered := renderCollapsible jobConfig width (jobSummary job) (jobBody job) job.widget
       let region : HitRegion :=
@@ -117,7 +167,11 @@ private def jobView (width : Nat) (job : JobState) : View :=
         , focusables := [job.id]
         , focus := if job.widget.focused then some job.id else none } }
 
-private def jobFrame (width : Nat) (jobs : List JobState) : Frame :=
+private
+def jobFrame
+    (width : Nat)
+    (jobs : List JobState)
+    : Frame :=
   let footer := Text.styled "Tab/Shift-Tab focus · Enter/Space toggle · arrows scroll · Esc quit"
     (Style.dim <+> Style.fg demoPalette.comment)
   let children := jobs.map (jobView width) ++ [View.text footer]
@@ -126,17 +180,25 @@ private def jobFrame (width : Nat) (jobs : List JobState) : Frame :=
       area := { top := 1, left := 1, width, height := 200 } }
   rendered.toFrame
 
-private def initialJobs : List JobState :=
+private
+def initialJobs
+    : List JobState :=
   [{ id := "compile", title := "compile", widget := { focused := true } },
    { id := "tests", title := "tests" }]
 
-private def postMessage (inbox : Std.Mutex (List SessionMessage)) (message : SessionMessage) :
-    IO Unit :=
+private
+def postMessage
+    (inbox : Std.Mutex (List SessionMessage))
+    (message : SessionMessage)
+    : IO Unit :=
   inbox.atomically fun ref => do
     let messages ← ref.get
     ref.set (messages ++ [message])
 
-private def drainMessages (inbox : Std.Mutex (List SessionMessage)) : IO (List SessionMessage) :=
+private
+def drainMessages
+    (inbox : Std.Mutex (List SessionMessage))
+    : IO (List SessionMessage) :=
   inbox.atomically fun ref => do
     let messages ← ref.get
     ref.set []
@@ -158,8 +220,13 @@ private def readInputs (inbox : Std.Mutex (List SessionMessage)) (active : IO.Re
     | some event => postMessage inbox (.input event)
     | none => active.set false
 
-private def applyInput (width : Nat) (frame : Frame) (event : Event)
-    (jobs : List JobState) : List JobState × Bool :=
+private
+def applyInput
+    (width : Nat)
+    (frame : Frame)
+    (event : Event)
+    (jobs : List JobState)
+    : List JobState × Bool :=
   match event with
   | .key .escape => (jobs, true)
   | .key .tab => (focusByKey .tab jobs, false)
@@ -219,14 +286,21 @@ private def jobSession : IO Unit := do
 private def jobPreview : IO Unit := do
   writeTextLine (jobFrame jobMouseWidth initialJobs).text
 
-private def showSequence (label sequence : String) : IO Unit :=
+private
+def showSequence
+    (label sequence : String)
+    : IO Unit :=
   IO.println s!"{label}: {repr sequence}"
 
-private def nameConfig : TextInputConfig :=
+private
+def nameConfig
+    : TextInputConfig :=
   { width := 16, maxLength := 16
     , label := Text.styled "name: " (Style.fg demoPalette.cyan) }
 
-private def sliderConfig : SliderConfig :=
+private
+def sliderConfig
+    : SliderConfig :=
   { width := 12, label := Text.styled "volume: " (Style.fg demoPalette.blue) }
 
 private structure TuiState where
@@ -236,14 +310,21 @@ private structure TuiState where
   enabled : CheckboxState := {}
   focus : Nat := 0
 
-private def tabLabel (label : String) (color : Color) (selected focused : Bool) : Text :=
+private
+def tabLabel
+    (label : String)
+    (color : Color)
+    (selected focused : Bool)
+    : Text :=
   let body := if selected then Text.plain "[" ++ Text.plain label ++ Text.plain "]"
     else Text.plain " " ++ Text.plain label ++ Text.plain " "
   let style := Style.fg color <+> (if selected then Style.bold else Style.empty) <+>
     (if focused then Style.reverse else Style.empty)
   Text.styled (Text.plainText body) style
 
-private def boxesView : Text :=
+private
+def boxesView
+    : Text :=
   let inner := Layout.box (Text.styled "nested content\nwith a title" (Style.fg demoPalette.green))
     { maxWidth := some 22
       , title := some (Text.styled "inner" (Style.bold <+> Style.fg demoPalette.cyan))
@@ -267,19 +348,31 @@ private def boxesView : Text :=
       , borderStyle := Style.fg demoPalette.foreground }
   Layout.columns [36, 28] 2 [outer, side]
 
-private def aboutView : Text :=
+private
+def aboutView
+    : Text :=
   Layout.box (Text.styled "Boxes are pure Text.\nTabs are app state." (Style.fg demoPalette.green))
     { maxWidth := some 48
       , title := some (Text.styled "about" (Style.bold <+> Style.fg demoPalette.cyan))
       , borderStyle := Style.fg demoPalette.comment }
 
-private def focusCount (state : TuiState) : Nat :=
+private
+def focusCount
+    (state : TuiState)
+    : Nat :=
   if state.tab == 0 then 5 else 1
 
-private def selectTab (state : TuiState) (tab : Nat) : TuiState :=
+private
+def selectTab
+    (state : TuiState)
+    (tab : Nat)
+    : TuiState :=
   { state with tab := tab % 3, focus := 0 }
 
-private def formView (state : TuiState) : Text :=
+private
+def formView
+    (state : TuiState)
+    : Text :=
   let marker := fun (index : Nat) => Text.plain (if state.focus == index then "> " else "  ")
   marker 1 ++ renderTextInput nameConfig state.name (state.focus == 1) ++ Text.plain "\n" ++
     marker 2 ++ renderSlider sliderConfig state.volume ++ Text.plain "\n" ++
@@ -290,7 +383,11 @@ private def formView (state : TuiState) : Text :=
     marker 4 ++
       (renderButton (Text.styled "save" (Style.fg demoPalette.purple)) (state.focus == 4))
 
-private def tuiView (state : TuiState) (showHelp : Bool := true) : Text :=
+private
+def tuiView
+    (state : TuiState)
+    (showHelp : Bool := true)
+    : Text :=
   let tabs := (if state.focus == 0 then Text.plain "> " else Text.plain "  ") ++
     tabLabel "Form" demoPalette.cyan (state.tab == 0) (state.focus == 0) ++
     tabLabel "Boxes" demoPalette.purple (state.tab == 1) (state.focus == 0) ++
@@ -304,7 +401,11 @@ private def tuiView (state : TuiState) (showHelp : Bool := true) : Text :=
     else Text.empty
   tabs ++ Text.plain "\n" ++ page ++ footer
 
-private def applyControlKey (state : TuiState) (key : Key) : TuiState × Bool :=
+private
+def applyControlKey
+    (state : TuiState)
+    (key : Key)
+    : TuiState × Bool :=
   if state.tab != 0 then
     (state, false)
   else
@@ -315,7 +416,11 @@ private def applyControlKey (state : TuiState) (key : Key) : TuiState × Bool :=
     | 4 => (state, buttonActivated key)
     | _ => (state, false)
 
-private def applyTuiKey (state : TuiState) (key : Key) : TuiState × Bool :=
+private
+def applyTuiKey
+    (state : TuiState)
+    (key : Key)
+    : TuiState × Bool :=
   match key with
   | .tab => ({ state with focus := moveFocus (focusCount state) state.focus .tab }, false)
   | .escape => (state, true)
