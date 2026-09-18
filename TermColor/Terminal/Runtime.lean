@@ -60,7 +60,8 @@ def bufferRenderer
 def withTerminal
     {α : Type}
     (action : IO α)
-    : IO α :=
+    : IO α
+    :=
   withHiddenCursor (withAlternateScreen action)
 
 structure Cancellation where
@@ -145,7 +146,8 @@ def currentSize
 private
 def renderContext
     (size : Size)
-    : ViewContext :=
+    : ViewContext
+    :=
   { size, area := { top := 1, left := 1, width := size.columns, height := size.rows } }
 
 private

@@ -28,19 +28,22 @@ theorem parse_key_sequences
     : parseKey "\u001b[A" = some .up ∧
       parseKey "\u001b[D" = some .left ∧
       parseKey "\r" = some .enter ∧
-      parseKey "\u007f" = some .backspace := by
+      parseKey "\u007f" = some .backspace
+    := by
   decide
 
 theorem parse_key_char_and_reject_partial_sequence
     : parseKey "x" = some (.char 'x') ∧
-      parseKey "\u001b[" = none := by
+      parseKey "\u001b[" = none
+    := by
   decide
 
 theorem parse_key_controls_and_extended_sequences
     : parseKey "\u0004" = some (.ctrl 'd') ∧
       parseKey "\u001b[1~" = some .home ∧
       parseKey "\u001b[6~" = some .pageDown ∧
-      parseKey "\u001b[Z" = some .shiftTab := by
+      parseKey "\u001b[Z" = some .shiftTab
+    := by
   decide
 
 private def fixtureByte : StateM (List ByteRead) ByteRead := fun input =>
@@ -52,7 +55,8 @@ private
 def fixtureEvent
     (keepGoing : Bool)
     (input : List ByteRead)
-    : Option Event × List ByteRead :=
+    : Option Event × List ByteRead
+    :=
   (readEventFrom fixtureByte (pure keepGoing)).run input
 
 theorem input_fixture_retries_timeout :
@@ -98,7 +102,8 @@ theorem parse_sgr_mouse_drag_modifiers :
 theorem parse_mouse_filters_press_release_and_scroll
     : (parseMouseEvent "\u001b[<0;2;3M").map (·.action) = some .press ∧
       (parseMouseEvent "\u001b[<0;2;3m").map (·.action) = some .release ∧
-      (parseMouseEvent "\u001b[<64;2;3M").map (·.action) = some .scrollUp := by
+      (parseMouseEvent "\u001b[<64;2;3M").map (·.action) = some .scrollUp
+    := by
   native_decide
 
 theorem hit_region_contains_inclusive_boundaries :
@@ -142,13 +147,15 @@ theorem screen_diff_clears_removed_trailing_rows :
 
 theorem mouse_capture_sequences_are_scoped
     : mouseCaptureSequence true false = "\u001b[?1000h\u001b[?1006h" ∧
-      mouseCaptureSequence false false = "\u001b[?1006l\u001b[?1000l" := by
+      mouseCaptureSequence false false = "\u001b[?1006l\u001b[?1000l"
+    := by
   decide
 
 theorem focus_wraps
     : moveFocus 3 2 .tab = 0 ∧
       moveFocus 3 0 .left = 2 ∧
-      moveFocus 0 4 .tab = 0 := by
+      moveFocus 0 4 .tab = 0
+    := by
   decide
 
 theorem cursor_to_column_is_one_based : cursorToColumnSequence 0 = "\u001b[1G" := by decide
@@ -158,7 +165,8 @@ theorem clear_line_sequence : clearLineSequence = "\u001b[2K\r" := by decide
 theorem screen_and_cursor_sequences
     : clearScreenSequence = "\u001b[2J\u001b[H" ∧
       saveCursorSequence = "\u001b[s" ∧
-      restoreCursorSequence = "\u001b[u" := by
+      restoreCursorSequence = "\u001b[u"
+    := by
   decide
 
 theorem alternate_screen_sequences :

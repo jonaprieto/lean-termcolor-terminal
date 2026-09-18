@@ -63,20 +63,23 @@ def jobStatusText
 private
 def jobSummary
     (job : JobState)
-    : Text :=
+    : Text
+    :=
   Text.plain job.title ++ Text.plain " · " ++ jobStatusText job.status ++
     Text.plain s!" · {job.logs.length} logs"
 
 private
 def jobBody
     (job : JobState)
-    : Text :=
+    : Text
+    :=
   Text.plain (String.join (job.logs.intersperse "\n"))
 
 private
 def retainLogs
     (logs : List String)
-    : List String :=
+    : List String
+    :=
   logs.drop (logs.length - jobBodyLimit)
 
 private
@@ -93,20 +96,23 @@ private
 def focusJob
     (id : String)
     (jobs : List JobState)
-    : List JobState :=
+    : List JobState
+    :=
   jobs.map fun job => { job with widget := { job.widget with focused := job.id == id } }
 
 private
 def focusedIndex
     (jobs : List JobState)
-    : Nat :=
+    : Nat
+    :=
   jobs.findIdx? (·.widget.focused) |>.getD 0
 
 private
 def focusByKey
     (key : Key)
     (jobs : List JobState)
-    : List JobState :=
+    : List JobState
+    :=
   let index := moveFocus jobs.length (focusedIndex jobs) key
   jobs.mapIdx fun index' job =>
     { job with widget := { job.widget with focused := index' == index } }
@@ -114,7 +120,8 @@ def focusByKey
 private
 def focusedJob
     (jobs : List JobState)
-    : Option JobState :=
+    : Option JobState
+    :=
   jobs.find? (·.widget.focused)
 
 private
@@ -122,7 +129,8 @@ def updateFocusedJob
     (width : Nat)
     (key : Key)
     (jobs : List JobState)
-    : List JobState :=
+    : List JobState
+    :=
   match focusedJob jobs with
   | none => jobs
   | some job =>
@@ -134,14 +142,16 @@ private
 def appendJobLog
     (id line : String)
     (jobs : List JobState)
-    : List JobState :=
+    : List JobState
+    :=
   alterJob id (fun job => { job with logs := retainLogs (job.logs ++ [line]) }) jobs
 
 private
 def applyWorkerMessage
     (message : SessionMessage)
     (jobs : List JobState)
-    : List JobState :=
+    : List JobState
+    :=
   match message with
   | .started id => alterJob id (fun job => { job with status := .running }) jobs
   | .log id line => appendJobLog id line jobs
@@ -153,7 +163,8 @@ private
 def jobView
     (width : Nat)
     (job : JobState)
-    : View :=
+    : View
+    :=
   { render := fun context =>
       let rendered := renderCollapsible jobConfig width (jobSummary job) (jobBody job) job.widget
       let region : HitRegion :=
@@ -169,7 +180,8 @@ private
 def jobFrame
     (width : Nat)
     (jobs : List JobState)
-    : Frame :=
+    : Frame
+    :=
   let footer := Text.styled "Tab/Shift-Tab focus · Enter/Space toggle · arrows scroll · Esc quit"
     (Style.dim <+> Style.fg demoPalette.comment)
   let children := jobs.map (jobView width) ++ [View.text footer]
@@ -186,7 +198,8 @@ private
 def postMessage
     (inbox : Std.Mutex (List SessionMessage))
     (message : SessionMessage)
-    : IO Unit :=
+    : IO Unit
+    :=
   inbox.atomically fun ref => do
     let messages ← ref.get
     ref.set (messages ++ [message])
@@ -194,7 +207,8 @@ def postMessage
 private
 def drainMessages
     (inbox : Std.Mutex (List SessionMessage))
-    : IO (List SessionMessage) :=
+    : IO (List SessionMessage)
+    :=
   inbox.atomically fun ref => do
     let messages ← ref.get
     ref.set []
@@ -230,7 +244,8 @@ def applyInput
     (frame : Frame)
     (event : Event)
     (jobs : List JobState)
-    : List JobState × Bool :=
+    : List JobState × Bool
+    :=
   match event with
   | .key .escape => (jobs, true)
   | .key .tab => (focusByKey .tab jobs, false)
@@ -293,7 +308,8 @@ private def jobPreview : IO Unit := do
 private
 def showSequence
     (label sequence : String)
-    : IO Unit :=
+    : IO Unit
+    :=
   IO.println s!"{label}: {repr sequence}"
 
 private def nameConfig : TextInputConfig :=
@@ -315,7 +331,8 @@ def tabLabel
     (label : String)
     (color : Color)
     (selected focused : Bool)
-    : Text :=
+    : Text
+    :=
   let body := if selected then Text.plain "[" ++ Text.plain label ++ Text.plain "]"
     else Text.plain " " ++ Text.plain label ++ Text.plain " "
   let style := Style.fg color <+> (if selected then Style.bold else Style.empty) <+>
@@ -355,20 +372,23 @@ private def aboutView : Text :=
 private
 def focusCount
     (state : TuiState)
-    : Nat :=
+    : Nat
+    :=
   if state.tab == 0 then 5 else 1
 
 private
 def selectTab
     (state : TuiState)
     (tab : Nat)
-    : TuiState :=
+    : TuiState
+    :=
   { state with tab := tab % 3, focus := 0 }
 
 private
 def formView
     (state : TuiState)
-    : Text :=
+    : Text
+    :=
   let marker := fun (index : Nat) => Text.plain (if state.focus == index then "> " else "  ")
   marker 1 ++ renderTextInput nameConfig state.name (state.focus == 1) ++ Text.plain "\n" ++
     marker 2 ++ renderSlider sliderConfig state.volume ++ Text.plain "\n" ++
@@ -383,7 +403,8 @@ private
 def tuiView
     (state : TuiState)
     (showHelp : Bool := true)
-    : Text :=
+    : Text
+    :=
   let tabs := (if state.focus == 0 then Text.plain "> " else Text.plain "  ") ++
     tabLabel "Form" demoPalette.cyan (state.tab == 0) (state.focus == 0) ++
     tabLabel "Boxes" demoPalette.purple (state.tab == 1) (state.focus == 0) ++
@@ -401,7 +422,8 @@ private
 def applyControlKey
     (state : TuiState)
     (key : Key)
-    : TuiState × Bool :=
+    : TuiState × Bool
+    :=
   if state.tab != 0 then
     (state, false)
   else
@@ -416,7 +438,8 @@ private
 def applyTuiKey
     (state : TuiState)
     (key : Key)
-    : TuiState × Bool :=
+    : TuiState × Bool
+    :=
   match key with
   | .tab => ({ state with focus := moveFocus (focusCount state) state.focus .tab }, false)
   | .escape => (state, true)

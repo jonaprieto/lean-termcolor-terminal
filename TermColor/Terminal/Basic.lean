@@ -26,19 +26,22 @@ private def csi : String := "\u001b["
 private
 def visibleLineCount
     (text : String)
-    : Nat :=
+    : Nat
+    :=
   if text.isEmpty then 0 else text.splitOn "\n" |>.length
 
 /-- Move the cursor up by `count` rows, or emit nothing for zero. -/
 def cursorUpSequence
     (count : Nat)
-    : String :=
+    : String
+    :=
   if count == 0 then "" else csi ++ toString count ++ "A"
 
 /-- Move the cursor down by `count` rows, or emit nothing for zero. -/
 def cursorDownSequence
     (count : Nat)
-    : String :=
+    : String
+    :=
   if count == 0 then "" else csi ++ toString count ++ "B"
 
 /-- Move to a one-based terminal column. -/
@@ -72,7 +75,8 @@ def showCursorSequence : String := csi ++ "?25h"
 def terminalControlAllowed
     (isTty : Bool)
     (term : Option String)
-    : Bool :=
+    : Bool
+    :=
   if !isTty then false else
     match term with
     | some "dumb" | some "unknown" => false
@@ -169,13 +173,15 @@ structure Size where
 private
 def parsePositiveNat
     (text : String)
-    : Option Nat :=
+    : Option Nat
+    :=
   text.trimAscii.toNat? |>.filter (· > 0)
 
 /-- Parse the `rows columns` output convention used by `stty size`. -/
 def parseSize
     (output : String)
-    : Option Size :=
+    : Option Size
+    :=
   let values := output.splitToList (·.isWhitespace) |>.filterMap parsePositiveNat
   match values with
   | rows :: columns :: _ => some { columns, rows }
@@ -240,7 +246,8 @@ def terminalWidth : IO Nat := do
 private
 def cursorToRowSequence
     (row : Nat)
-    : String :=
+    : String
+    :=
   csi ++ toString (row + 1) ++ ";1H"
 
 /-- A stable application-owned rectangle in one-based terminal coordinates. -/
@@ -256,7 +263,8 @@ structure HitRegion where
 def HitRegion.contains
     (region : HitRegion)
     (row column : Nat)
-    : Bool :=
+    : Bool
+    :=
   region.top ≤ row && row ≤ region.bottom && region.left ≤ column && column ≤ region.right
 
 /-- A pure frame supplied to `Screen.renderFrame`. -/
@@ -288,7 +296,8 @@ def start : IO Screen := do
 def diffSequence
     (screen : Screen)
     (next : List String)
-    : String × Screen :=
+    : String × Screen
+    :=
   let count := max screen.previous.length next.length
   let pieces := (List.range count).foldl (fun pieces row =>
     let oldLine := screen.previous.getD row ""
@@ -301,7 +310,8 @@ private
 def renderedLines
     (size : Option Size)
     (text : Text)
-    : Text :=
+    : Text
+    :=
   let wrapped := Layout.splitLines (Layout.wrapLines
     (size.map (·.columns) |>.getD Layout.defaultWidth) text)
   let lines := match size with
@@ -338,7 +348,8 @@ def render
     (screen : Screen)
     (text : Text)
     (choice : ColorChoice := .auto)
-    : IO Screen :=
+    : IO Screen
+    :=
   screen.renderFrame { text } choice
 
 /-- Finish a screen and leave the cursor below its last rendered line. -/
@@ -355,7 +366,8 @@ end Screen
 /-- Enable SGR mouse events, optionally including drag reporting. -/
 def mouseCaptureSequence
     (enabled drag : Bool)
-    : String :=
+    : String
+    :=
   if enabled then
     csi ++ "?" ++ (if drag then "1002" else "1000") ++ "h" ++ csi ++ "?1006h"
   else
@@ -364,13 +376,15 @@ def mouseCaptureSequence
 /-- Enable mouse reporting when stdout is a capable terminal. -/
 def enableMouse
     (drag : Bool := false)
-    : IO Unit :=
+    : IO Unit
+    :=
   writeControl (mouseCaptureSequence true drag)
 
 /-- Disable mouse reporting. -/
 def disableMouse
     (drag : Bool := false)
-    : IO Unit :=
+    : IO Unit
+    :=
   writeControl (mouseCaptureSequence false drag)
 
 /-- Scope mouse reporting and restore the terminal mode even when the action fails. -/
@@ -396,13 +410,15 @@ def start : LiveRegion := {}
 def setWidth
     (state : LiveRegion)
     (width : Nat)
-    : LiveRegion :=
+    : LiveRegion
+    :=
   { state with width := some width }
 
 private
 def clearBelowSequence
     (count : Nat)
-    : String :=
+    : String
+    :=
   if count == 0 then "" else
     let output := (List.range count).foldl
       (fun result _ => result ++ cursorDownSequence 1 ++ clearLineSequence) ""
@@ -411,14 +427,16 @@ def clearBelowSequence
 private
 def clearAndWriteLines
     (text : String)
-    : String :=
+    : String
+    :=
   String.join (((text.splitOn "\n").map fun line => clearLineSequence ++ line).intersperse "\n")
 
 /-- Pure output and next state for a multi-line redraw. -/
 def updateSequence
     (state : LiveRegion)
     (text : String)
-    : String × LiveRegion :=
+    : String × LiveRegion
+    :=
   let oldCount := state.lineCount
   let newCount := visibleLineCount text
   let lead := if oldCount == 0 then "" else cursorUpSequence (oldCount - 1) ++ "\r"
@@ -434,7 +452,8 @@ def updateSequence
 /-- Pure output and next state for finishing a live region. -/
 def finishSequence
     (state : LiveRegion)
-    : String × LiveRegion :=
+    : String × LiveRegion
+    :=
   (if state.lineCount == 0 then "" else "\n", {})
 
 /-- Redraw a multi-line region and flush stdout. -/

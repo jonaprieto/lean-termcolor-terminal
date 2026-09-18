@@ -37,7 +37,8 @@ def move (rect : Rect) (top left : Nat) : Rect := { rect with top, left }
 def inset
     (rect : Rect)
     (rows columns : Nat)
-    : Rect :=
+    : Rect
+    :=
   { top := rect.top + rows
     left := rect.left + columns
     width := rect.width - 2 * columns
@@ -67,20 +68,23 @@ def height (rendered : Rendered) : Nat := rendered.text.height
 
 def toFrame
     (rendered : Rendered)
-    : Frame :=
+    : Frame
+    :=
   { text := rendered.text, hitRegions := rendered.hitRegions, focusables := rendered.focusables
     focus := rendered.focus }
 
 def fromFrame
     (frame : Frame)
-    : Rendered :=
+    : Rendered
+    :=
   { text := frame.text, hitRegions := frame.hitRegions, focusables := frame.focusables
     focus := frame.focus }
 
 def withPrefix
     (name : String)
     (rendered : Rendered)
-    : Rendered :=
+    : Rendered
+    :=
   if name.isEmpty then rendered
   else
     { rendered with
@@ -100,7 +104,8 @@ def verticalLines
 def vertical
     (gap : Nat)
     (items : List Rendered)
-    : Rendered :=
+    : Rendered
+    :=
   { text := Layout.joinLines (verticalLines gap (items.map (·.text)))
     hitRegions := items.flatMap (·.hitRegions)
     focusables := items.flatMap (·.focusables)
@@ -109,7 +114,8 @@ def vertical
 def horizontal
     (gap : Nat)
     (items : List Rendered)
-    : Rendered :=
+    : Rendered
+    :=
   let widths := items.map width
   { text := Layout.columns widths gap (items.map (·.text))
     hitRegions := items.flatMap (·.hitRegions)
@@ -137,7 +143,8 @@ def indexOf?
 
 def fromRendered
     (rendered : Rendered)
-    : FocusRing :=
+    : FocusRing
+    :=
   { ids := rendered.focusables
     current := rendered.focus.bind (fun id => indexOf? id rendered.focusables) |>.getD 0 }
 
@@ -146,13 +153,15 @@ def currentId (ring : FocusRing) : Option String := ring.ids[ring.current]?
 def move
     (key : Widgets.Key)
     (ring : FocusRing)
-    : FocusRing :=
+    : FocusRing
+    :=
   { ring with current := moveFocus ring.ids.length ring.current key }
 
 def focus
     (id : String)
     (ring : FocusRing)
-    : FocusRing :=
+    : FocusRing
+    :=
   match indexOf? id ring.ids with
   | some current => { ring with current }
   | none => ring
@@ -178,7 +187,8 @@ inductive Constraint where
 def resolveConstraints
     (total gap : Nat)
     (constraints : List Constraint)
-    : List Nat :=
+    : List Nat
+    :=
   let available := total - gap * (constraints.length - 1)
   let fixed := constraints.foldl (fun sum constraint =>
     match constraint with
@@ -210,7 +220,8 @@ def frame (value : Frame) : View := { render := fun _ => Rendered.fromFrame valu
 def column
     (gap : Nat)
     (children : List View)
-    : View :=
+    : View
+    :=
   { render := fun context =>
       let rec go (offset : Nat) : List View → List Rendered
         | [] => []
@@ -225,7 +236,8 @@ def rowWith
     (constraints : List Constraint)
     (gap : Nat)
     (children : List View)
-    : View :=
+    : View
+    :=
   { render := fun context =>
       let constraints :=
         (constraints ++ List.replicate (children.length - constraints.length) Constraint.fill).take
@@ -246,13 +258,15 @@ def rowWith
 def row
     (gap : Nat)
     (children : List View)
-    : View :=
+    : View
+    :=
   rowWith (List.replicate children.length .fill) gap children
 
 def panel
     (config : BoxConfig)
     (child : View)
-    : View :=
+    : View
+    :=
   { render := fun context =>
       let inner := context.area.inset 1 config.padding
       let rendered := child.render { context with area := inner }
@@ -263,7 +277,8 @@ def panel
 def withPrefix
     (name : String)
     (child : View)
-    : View :=
+    : View
+    :=
   { render := fun context => Rendered.withPrefix name (child.render context) }
 
 end View
@@ -329,7 +344,8 @@ def mapMsg
     (inject : ChildMsg → ParentMsg)
     (project : ParentMsg → Option ChildMsg)
     (component : Component Model ChildMsg)
-    : Component Model ParentMsg :=
+    : Component Model ParentMsg
+    :=
   { view := component.view
     update := fun message model =>
       match project message with
