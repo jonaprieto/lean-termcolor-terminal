@@ -15,7 +15,8 @@ private def repetitions : Nat := 4
 private
 def runBuffer
     (size : Size)
-    : IO (Nat × Nat) := do
+    : IO (Nat × Nat)
+    := do
   let start ← IO.monoNanosNow
   let mut screen := BufferScreen.empty
   let mut bytes := 0
@@ -28,7 +29,10 @@ def runBuffer
   let elapsed := (← IO.monoNanosNow) - start
   pure (elapsed, bytes)
 
-private def runLines : IO (Nat × Nat) := do
+private
+def runLines
+    : IO (Nat × Nat)
+    := do
   let start ← IO.monoNanosNow
   let mut screen := Screen.empty
   let mut bytes := 0
@@ -44,7 +48,8 @@ private
 def summarize
     (name : String)
     (run : IO (Nat × Nat))
-    : IO Unit := do
+    : IO Unit
+    := do
   let _ ← run
   let mut samples := []
   let mut bytes := 0
@@ -58,7 +63,9 @@ def summarize
   IO.println (s!"{name}: {frames} frames, best {best / 10}.{best % 10} ms, " ++
     s!"avg {average / 10}.{average % 10} ms, {bytes} output chars")
 
-def main : IO Unit := do
+def main
+    : IO Unit
+    := do
   summarize "buffer 80x24" (runBuffer { columns := 80, rows := 24 })
   summarize "buffer 160x50" (runBuffer { columns := 160, rows := 50 })
   summarize "lines" runLines

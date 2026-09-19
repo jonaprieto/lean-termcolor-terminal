@@ -112,7 +112,8 @@ def parseMouseButton
 /-- Decode an SGR (1006) mouse sequence. Coordinates are one-based, like the protocol. -/
 def parseMouseEvent
     (input : String)
-    : Option MouseEvent := do
+    : Option MouseEvent
+    := do
   let marker := "\u001b[<".toList
   let chars := input.toList
   if !marker.isPrefixOf chars then none else
@@ -198,7 +199,8 @@ def runStty
 def withRawInput
     {α : Type}
     (action : IO α)
-    : IO α := do
+    : IO α
+    := do
   let saved ← runStty "stty -g < /dev/tty"
   if saved.exitCode != 0 then
     throw (IO.userError "could not read terminal settings")
@@ -213,7 +215,10 @@ def withRawInput
     if restored.exitCode != 0 then
       throw (IO.userError "could not restore terminal settings")
 
-private def readByte : ByteSource := do
+private
+def readByte
+    : ByteSource
+    := do
   let stdin ← IO.getStdin
   let bytes ← stdin.read 1
   match bytes[0]? with
@@ -268,7 +273,8 @@ def decodeUtf8
     [Monad m]
     (readByte : m ByteRead)
     (first : UInt8)
-    : m Char := do
+    : m Char
+    := do
   let value := first.toNat
   let count := if value < 0x80 then 0
     else if value < 0xe0 then 1
@@ -302,7 +308,8 @@ def readCsiWhile
     (readByte : m ByteRead)
     (keepGoing : m Bool)
     (input : String)
-    : m String := do
+    : m String
+    := do
   let rec go (input : String) (fuel : Nat) : m String := do
     if !(← keepGoing) then pure input else
       match fuel with
@@ -322,7 +329,8 @@ def readEscapeSequenceWhile
     [Monad m]
     (readByte : m ByteRead)
     (keepGoing : m Bool)
-    : m String := do
+    : m String
+    := do
   if !(← keepGoing) then pure "" else
     match ← readByte with
     | .byte 91 => readCsiWhile readByte keepGoing "["
@@ -337,7 +345,8 @@ def readEventFrom
     [Monad m]
     (readByte : m ByteRead)
     (keepGoing : m Bool)
-    : m (Option Event) := do
+    : m (Option Event)
+    := do
   if !(← keepGoing) then pure none else
     match ← readByte with
     | .timeout => readEventFrom readByte keepGoing
@@ -364,7 +373,9 @@ def readEventWhile
 def readEvent : IO (Option Event) := readEventWhile (pure true)
 
 /-- Read one ASCII terminal key, including the common arrow-key escape sequences. -/
-def readKey : IO (Option Widgets.Key) := do
+def readKey
+    : IO (Option Widgets.Key)
+    := do
   match ← readEvent with
   | some (.key key) => pure (some key)
   | _ => pure none

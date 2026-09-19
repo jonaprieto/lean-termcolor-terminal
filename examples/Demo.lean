@@ -41,7 +41,10 @@ private inductive SessionMessage where
   | completed (id : String) (success : Bool)
   | input (event : Event)
 
-private def jobConfig : CollapsibleConfig :=
+private
+def jobConfig
+    : CollapsibleConfig
+    :=
   { collapsedMarker := Text.styled "▸ " (Style.fg demoPalette.cyan)
     , expandedMarker := Text.styled "▾ " (Style.fg demoPalette.cyan)
     , summaryStyle := Style.fg demoPalette.foreground
@@ -190,7 +193,10 @@ def jobFrame
       area := { top := 1, left := 1, width, height := 200 } }
   rendered.toFrame
 
-private def initialJobs : List JobState :=
+private
+def initialJobs
+    : List JobState
+    :=
   [{ id := "compile", title := "compile", widget := { focused := true } },
    { id := "tests", title := "tests" }]
 
@@ -220,7 +226,8 @@ def runJob
     (id : String)
     (lines : List String)
     (success : Bool)
-    : IO Unit := do
+    : IO Unit
+    := do
   postMessage inbox (.started id)
   for line in lines do
     IO.sleep 180
@@ -232,7 +239,8 @@ private
 def readInputs
     (inbox : Std.Mutex (List SessionMessage))
     (active : IO.Ref Bool)
-    : IO Unit := do
+    : IO Unit
+    := do
   while ← active.get do
     match ← readEventWhile active.get with
     | some event => postMessage inbox (.input event)
@@ -266,7 +274,10 @@ def applyInput
           | .scrollDown => (updateFocusedJob width .down jobs, false)
           | _ => (jobs, false)
 
-private def jobSession : IO Unit := do
+private
+def jobSession
+    : IO Unit
+    := do
   let inbox ← Std.Mutex.new []
   let active ← IO.mkRef true
   let _ ← IO.asTask (runJob inbox "compile" ["started", "parsed sources", "built library"] true)
@@ -302,7 +313,10 @@ private def jobSession : IO Unit := do
             let screen ← screenRef.get
             let _ ← screen.finish
 
-private def jobPreview : IO Unit := do
+private
+def jobPreview
+    : IO Unit
+    := do
   writeTextLine (jobFrame jobMouseWidth initialJobs).text
 
 private
@@ -312,11 +326,17 @@ def showSequence
     :=
   IO.println s!"{label}: {repr sequence}"
 
-private def nameConfig : TextInputConfig :=
+private
+def nameConfig
+    : TextInputConfig
+    :=
   { width := 16, maxLength := 16
     , label := Text.styled "name: " (Style.fg demoPalette.cyan) }
 
-private def sliderConfig : SliderConfig :=
+private
+def sliderConfig
+    : SliderConfig
+    :=
   { width := 12, label := Text.styled "volume: " (Style.fg demoPalette.blue) }
 
 private structure TuiState where
@@ -339,7 +359,10 @@ def tabLabel
     (if focused then Style.reverse else Style.empty)
   Text.styled (Text.plainText body) style
 
-private def boxesView : Text :=
+private
+def boxesView
+    : Text
+    :=
   let inner := Layout.box (Text.styled "nested content\nwith a title" (Style.fg demoPalette.green))
     { maxWidth := some 22
       , title := some (Text.styled "inner" (Style.bold <+> Style.fg demoPalette.cyan))
@@ -363,7 +386,10 @@ private def boxesView : Text :=
       , borderStyle := Style.fg demoPalette.foreground }
   Layout.columns [36, 28] 2 [outer, side]
 
-private def aboutView : Text :=
+private
+def aboutView
+    : Text
+    :=
   Layout.box (Text.styled "Boxes are pure Text.\nTabs are app state." (Style.fg demoPalette.green))
     { maxWidth := some 48
       , title := some (Text.styled "about" (Style.bold <+> Style.fg demoPalette.cyan))
@@ -451,7 +477,10 @@ def applyTuiKey
       else applyControlKey state key
   | _ => applyControlKey state key
 
-private def interactiveTui : IO Unit := do
+private
+def interactiveTui
+    : IO Unit
+    := do
   hideCursor
   try
     withRawInput do
@@ -472,7 +501,10 @@ private def interactiveTui : IO Unit := do
     showCursor
     clearScreen
 
-private def liveDemo : IO Unit := do
+private
+def liveDemo
+    : IO Unit
+    := do
   IO.println "live progress, spinner, and shimmer:"
   hideCursor
   try
@@ -524,7 +556,10 @@ private def liveDemo : IO Unit := do
   finally
     showCursor
 
-private def liveRegionDemo : IO Unit := do
+private
+def liveRegionDemo
+    : IO Unit
+    := do
   IO.println "live region:"
   hideCursor
   try
@@ -541,7 +576,9 @@ private def liveRegionDemo : IO Unit := do
   finally
     showCursor
 
-def main : IO Unit := do
+def main
+    : IO Unit
+    := do
   IO.println "termcolor-terminal"
   IO.println "pure control sequences:"
   showSequence "cursor up 2" (cursorUpSequence 2)

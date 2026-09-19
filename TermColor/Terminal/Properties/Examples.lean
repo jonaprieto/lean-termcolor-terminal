@@ -12,14 +12,15 @@ import TermColor.Terminal
 
 namespace TermColor.Terminal
 
-theorem cursor_sequences_compose :
-    cursorUpSequence 1 ++ cursorDownSequence 1 = "\u001b[1A\u001b[1B" := by decide
+theorem cursor_sequences_compose
+    : cursorUpSequence 1 ++ cursorDownSequence 1 = "\u001b[1A\u001b[1B"
+    := by decide
 
 theorem clear_line_ends_with_carriage_return : clearLineSequence.endsWith "\r" := by native_decide
 
-theorem live_region_redraws_single_line :
-    ((LiveRegion.start.updateSequence "one").2.updateSequence "two").1 =
-      "\r\u001b[2K\rtwo" := by
+theorem live_region_redraws_single_line
+    : ((LiveRegion.start.updateSequence "one").2.updateSequence "two").1 = "\r\u001b[2K\rtwo"
+    := by
   -- native_decide: private string helpers do not reduce through this module boundary.
   native_decide
 

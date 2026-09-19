@@ -69,7 +69,9 @@ structure Cancellation where
 
 namespace Cancellation
 
-def new : IO Cancellation := do
+def new
+    : IO Cancellation
+    := do
   pure { token := ← Std.CancellationToken.new }
 
 def cancel (cancellation : Cancellation) : IO Unit := cancellation.token.cancel
@@ -91,13 +93,16 @@ structure EventReader where
 
 namespace EventReader
 
-def new : IO EventReader := do
+def new
+    : IO EventReader
+    := do
   pure { result := ← IO.mkRef none, active := ← IO.mkRef false, task := ← IO.mkRef none }
 
 def ensureReading
     (reader : EventReader)
     (keepGoing : IO Bool)
-    : IO Unit := do
+    : IO Unit
+    := do
   unless ← reader.active.get do
     reader.active.set true
     let task ← IO.asTask do
@@ -109,7 +114,8 @@ def ensureReading
 
 def take
     (reader : EventReader)
-    : IO (Option (Option Event)) := do
+    : IO (Option (Option Event))
+    := do
   let result ← reader.result.get
   if result.isSome then
     reader.result.set none
@@ -117,7 +123,8 @@ def take
 
 def waitStopped
     (reader : EventReader)
-    : IO Unit := do
+    : IO Unit
+    := do
   while ← reader.active.get do
     IO.sleep 1
   match ← reader.task.get with
@@ -140,7 +147,8 @@ structure LoopConfig
 private
 def currentSize
     (fallback : Size)
-    : IO Size := do
+    : IO Size
+    := do
   pure ((← terminalSize).getD fallback)
 
 private
@@ -160,7 +168,8 @@ def runLoop
     (modelRef : IO.Ref Model)
     (sizeRef : IO.Ref Size)
     (outputRef : IO.Ref State)
-    : IO Unit := do
+    : IO Unit
+    := do
   while config.isRunning (← modelRef.get) && !(← cancellation.isCancelled) do
     reader.ensureReading (do return !(← cancellation.isCancelled))
     let output ← outputRef.get
@@ -184,7 +193,8 @@ def run
     {Model State : Type}
     (renderer : Renderer State)
     (config : LoopConfig Model)
-    : IO Unit := do
+    : IO Unit
+    := do
   let cancellation ← Cancellation.new
   let reader ← EventReader.new
   let modelRef ← IO.mkRef config.initial

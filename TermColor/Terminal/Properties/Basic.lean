@@ -21,8 +21,9 @@ theorem terminal_control_requires_tty : !terminalControlAllowed false none := by
 
 theorem terminal_control_rejects_dumb : !terminalControlAllowed true (some "dumb") := by decide
 
-theorem terminal_control_allows_declared_tty :
-    terminalControlAllowed true (some "xterm") := by decide
+theorem terminal_control_allows_declared_tty
+    : terminalControlAllowed true (some "xterm")
+    := by decide
 
 theorem parse_key_sequences
     : parseKey "\u001b[A" = some .up ∧
@@ -59,28 +60,34 @@ def fixtureEvent
     :=
   (readEventFrom fixtureByte (pure keepGoing)).run input
 
-theorem input_fixture_retries_timeout :
-    fixtureEvent true [.timeout, .byte 120] = (some (.key (.char 'x')), []) := by
+theorem input_fixture_retries_timeout
+    : fixtureEvent true [.timeout, .byte 120] = (some (.key (.char 'x')), [])
+    := by
   native_decide
 
-theorem input_fixture_eof_stops :
-    fixtureEvent true [.eof] = (none, []) := by
+theorem input_fixture_eof_stops
+    : fixtureEvent true [.eof] = (none, [])
+    := by
   native_decide
 
-theorem input_fixture_standalone_escape :
-    fixtureEvent true [.byte 27, .timeout] = (some (.key .escape), []) := by
+theorem input_fixture_standalone_escape
+    : fixtureEvent true [.byte 27, .timeout] = (some (.key .escape), [])
+    := by
   native_decide
 
-theorem input_fixture_reads_csi_sequence :
-    fixtureEvent true [.byte 27, .byte 91, .byte 65] = (some (.key .up), []) := by
+theorem input_fixture_reads_csi_sequence
+    : fixtureEvent true [.byte 27, .byte 91, .byte 65] = (some (.key .up), [])
+    := by
   native_decide
 
-theorem input_fixture_preserves_invalid_byte_handling :
-    fixtureEvent true [.byte 255] = (some (.key (.char (Char.ofNat 255))), []) := by
+theorem input_fixture_preserves_invalid_byte_handling
+    : fixtureEvent true [.byte 255] = (some (.key (.char (Char.ofNat 255))), [])
+    := by
   native_decide
 
-theorem input_fixture_cancellation_does_not_read :
-    fixtureEvent false [.byte 120] = (none, [.byte 120]) := by
+theorem input_fixture_cancellation_does_not_read
+    : fixtureEvent false [.byte 120] = (none, [.byte 120])
+    := by
   native_decide
 
 theorem parse_sgr_mouse_event :
@@ -129,9 +136,10 @@ theorem hit_test_uses_first_overlapping_region :
       hitTest frame { button := .left, action := .press, row := 8, column := 4 } = none := by
   native_decide
 
-theorem screen_diff_rewrites_changed_lines :
-    (Screen.empty.diffSequence ["one", "two"]).1 =
-      "\u001b[1;1H\u001b[2K\rone\u001b[2;1H\u001b[2K\rtwo" := by
+theorem screen_diff_rewrites_changed_lines
+    : (Screen.empty.diffSequence ["one", "two"]).1 =
+      "\u001b[1;1H\u001b[2K\rone\u001b[2;1H\u001b[2K\rtwo"
+    := by
   native_decide
 
 theorem screen_diff_rewrites_selection_style_flip :
@@ -169,28 +177,32 @@ theorem screen_and_cursor_sequences
     := by
   decide
 
-theorem alternate_screen_sequences :
-    enterAlternateScreenSequence = "\u001b[?1049h" ∧
-      exitAlternateScreenSequence = "\u001b[?1049l" := by decide
+theorem alternate_screen_sequences
+    : enterAlternateScreenSequence = "\u001b[?1049h" ∧
+      exitAlternateScreenSequence = "\u001b[?1049l"
+    := by decide
 
-theorem hide_show_cursor_sequences :
-    hideCursorSequence = "\u001b[?25l" ∧ showCursorSequence = "\u001b[?25h" := by decide
+theorem hide_show_cursor_sequences
+    : hideCursorSequence = "\u001b[?25l" ∧
+      showCursorSequence = "\u001b[?25h"
+    := by decide
 
-theorem parse_size_rows_columns :
-    (parseSize "24 80\n").map (fun size => (size.columns, size.rows)) = some (80, 24) := by
+theorem parse_size_rows_columns
+    : (parseSize "24 80\n").map (fun size => (size.columns, size.rows)) = some (80, 24)
+    := by
   native_decide
 
-theorem parse_size_accepts_mixed_whitespace :
-    (parseSize "\t24  \n80\r").map (fun size => (size.columns, size.rows)) =
-      some (80, 24) := by native_decide
+theorem parse_size_accepts_mixed_whitespace
+    : (parseSize "\t24  \n80\r").map (fun size => (size.columns, size.rows)) = some (80, 24)
+    := by native_decide
 
 theorem parse_size_rejects_missing_dimension : parseSize "80" = none := by native_decide
 
 theorem parse_size_rejects_zero : parseSize "0 80" = none := by native_decide
 
-theorem live_region_starts_without_cursor_motion :
-    (LiveRegion.start.updateSequence "first\nsecond").1 =
-      "\u001b[2K\rfirst\n\u001b[2K\rsecond" := by
+theorem live_region_starts_without_cursor_motion
+    : (LiveRegion.start.updateSequence "first\nsecond").1 = "\u001b[2K\rfirst\n\u001b[2K\rsecond"
+    := by
   -- native_decide: private string helpers do not reduce through this module boundary.
   native_decide
 
@@ -214,8 +226,9 @@ theorem live_region_finishes_with_newline :
   -- native_decide: the private width cache is part of the state update.
   native_decide
 
-theorem live_region_empty_finish_is_safe :
-    LiveRegion.start.finishSequence.1 = "" := by decide
+theorem live_region_empty_finish_is_safe
+    : LiveRegion.start.finishSequence.1 = ""
+    := by decide
 
 theorem live_progress_uses_widgets :
     (Widgets.progressBar { width := 4 } { current := 1, total := 2 }).plainText =
@@ -235,13 +248,14 @@ theorem live_shimmer_uses_widgets :
     (Widgets.shimmer { band := 2 } { frame := 3 } (Text.plain "hi")).plainText =
       "hi" := by native_decide
 
-theorem live_status_uses_widgets :
-    (Widgets.renderStatus .warning (Text.plain "slow")).plainText =
-      "[warn] slow" := by native_decide
+theorem live_status_uses_widgets
+    : (Widgets.renderStatus .warning (Text.plain "slow")).plainText = "[warn] slow"
+    := by native_decide
 
-theorem live_table_uses_widgets :
-    (Widgets.renderTable [5, 5] [[Text.plain "name", Text.plain "state"]]).plainText =
-      "name   state" := by native_decide
+theorem live_table_uses_widgets
+    : (Widgets.renderTable [5, 5] [[Text.plain "name", Text.plain "state"]]).plainText =
+      "name   state"
+    := by native_decide
 
 end Terminal
 end TermColor
