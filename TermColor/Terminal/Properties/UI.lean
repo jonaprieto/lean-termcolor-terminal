@@ -28,8 +28,9 @@ theorem ui_row_composes_columns :
       "a b" := by
   native_decide
 
-theorem ui_constraints_resolve_fixed_percent_fill :
-    resolveConstraints 20 1 [.fixed 3, .fill, .percent 25] = [3, 11, 4] := by
+theorem ui_constraints_resolve_fixed_percent_fill
+    : resolveConstraints 20 1 [.fixed 3, .fill, .percent 25] = [3, 11, 4]
+    := by
   native_decide
 
 theorem ui_prefix_names_child_targets :
@@ -68,9 +69,10 @@ theorem component_maps_parent_messages :
     (parent.update 12 3).1 = 5 := by
   native_decide
 
-theorem buffer_round_trips_fixed_surface :
-    (Buffer.fromText { columns := 4, rows := 2 } (Text.plain "ab\nc")).toText.plainText =
-      "ab  \nc   " := by
+theorem buffer_round_trips_fixed_surface
+    : (Buffer.fromText { columns := 4, rows := 2 } (Text.plain "ab\nc")).toText.plainText =
+      "ab  \nc   "
+    := by
   native_decide
 
 theorem buffer_initial_draw_is_positioned :

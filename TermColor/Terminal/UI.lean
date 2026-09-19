@@ -309,7 +309,8 @@ def run
     {Msg : Type}
     (send : Msg → IO Unit)
     (command : Command Msg)
-    : IO Unit := do
+    : IO Unit
+    := do
   let mut pending := [command]
   while !pending.isEmpty do
     match pending with

@@ -82,27 +82,34 @@ def terminalControlAllowed
     | some "dumb" | some "unknown" => false
     | _ => true
 
-private def terminalControlEnabled : IO Bool := do
+private
+def terminalControlEnabled
+    : IO Bool
+    := do
   pure (terminalControlAllowed (← (← IO.getStdout).isTty) (← IO.getEnv "TERM"))
 
 /-- Write text to stdout without flushing. -/
 def write (text : String) : IO Unit := IO.print text
 
 /-- Flush stdout. -/
-def flush : IO Unit := do
+def flush
+    : IO Unit
+    := do
   (← IO.getStdout).flush
 
 private
 def writeFlush
     (text : String)
-    : IO Unit := do
+    : IO Unit
+    := do
   write text
   flush
 
 private
 def writeControl
     (sequence : String)
-    : IO Unit := do
+    : IO Unit
+    := do
   if ← terminalControlEnabled then
     writeFlush sequence
 
@@ -110,14 +117,16 @@ def writeControl
 def writeText
     (text : Text)
     (choice : ColorChoice := .auto)
-    : IO Unit := do
+    : IO Unit
+    := do
   write (← TermColor.render text choice)
 
 /-- Render styled text using terminal detection and write it with a newline. -/
 def writeTextLine
     (text : Text)
     (choice : ColorChoice := .auto)
-    : IO Unit := do
+    : IO Unit
+    := do
   write (← TermColor.render (text ++ Text.plain "\n") choice)
 
 /-- Erase the current line and return to its first column. -/
@@ -154,14 +163,18 @@ def hideCursor : IO Unit := writeControl hideCursorSequence
 def showCursor : IO Unit := writeControl showCursorSequence
 
 /-- Whether stdout is attached to a terminal. -/
-def stdoutIsTty : IO Bool := do
+def stdoutIsTty
+    : IO Bool
+    := do
   (← IO.getStdout).isTty
 
 /-- Whether stdout is a TTY suitable for cursor-control sequences. -/
 def stdoutSupportsControl : IO Bool := terminalControlEnabled
 
 /-- Whether stdin is attached to a terminal. -/
-def stdinIsTty : IO Bool := do
+def stdinIsTty
+    : IO Bool
+    := do
   (← IO.getStdin).isTty
 
 /-- A terminal's usable character dimensions. -/
@@ -190,12 +203,16 @@ def parseSize
 private
 def environmentSize
     (columns rows : Option String)
-    : Option Size := do
+    : Option Size
+    := do
   let columns ← columns >>= parsePositiveNat
   let rows ← rows >>= parsePositiveNat
   pure { columns, rows }
 
-private def sttySize : IO (Option Size) := do
+private
+def sttySize
+    : IO (Option Size)
+    := do
   -- ponytail: a fixed `stty` subprocess keeps this portable; add termios FFI only if signal-driven
   -- resize notifications become a requirement.
   try
@@ -213,14 +230,19 @@ private def terminalSizeCacheNanos : Nat := 250_000_000
 
 initialize terminalSizeCache : IO.Ref (Option (Nat × Option Size)) ← IO.mkRef none
 
-private def uncachedTerminalSize : IO (Option Size) := do
+private
+def uncachedTerminalSize
+    : IO (Option Size)
+    := do
   match ← sttySize with
   | some size => pure (some size)
   | none =>
     pure (environmentSize (← IO.getEnv "COLUMNS") (← IO.getEnv "LINES"))
 
 /-- Query terminal dimensions, returning `none` when no size can be determined. -/
-def terminalSize : IO (Option Size) := do
+def terminalSize
+    : IO (Option Size)
+    := do
   let now ← IO.monoNanosNow
   match ← terminalSizeCache.get with
   | some (cachedAt, size) =>
@@ -238,7 +260,9 @@ def terminalSize : IO (Option Size) := do
 -- or termios FFI if resize latency below 250ms becomes a customer requirement.
 
 /-- Query terminal width, falling back to the layout library's default width. -/
-def terminalWidth : IO Nat := do
+def terminalWidth
+    : IO Nat
+    := do
   match ← terminalSize with
   | some size => pure size.columns
   | none => pure Layout.defaultWidth
@@ -289,7 +313,9 @@ namespace Screen
 def empty : Screen := {}
 
 /-- Start a screen and capture the current terminal size. -/
-def start : IO Screen := do
+def start
+    : IO Screen
+    := do
   pure { size := ← terminalSize }
 
 /-- Pure line-granularity diff from the previous screen to `next`. -/
@@ -324,7 +350,8 @@ def renderFrame
     (screen : Screen)
     (frame : Frame)
     (choice : ColorChoice := .auto)
-    : IO Screen := do
+    : IO Screen
+    := do
   let size := (← terminalSize).orElse (fun _ => screen.size)
   if screen.frame == frame && screen.size == size then
     return screen
@@ -355,7 +382,8 @@ def render
 /-- Finish a screen and leave the cursor below its last rendered line. -/
 def finish
     (screen : Screen)
-    : IO Screen := do
+    : IO Screen
+    := do
   if ← terminalControlEnabled then
     write (cursorToRowSequence screen.previous.length ++ "\n")
     flush
@@ -392,7 +420,8 @@ def withMouseCapture
     {α : Type}
     (action : IO α)
     (drag : Bool := false)
-    : IO α := do
+    : IO α
+    := do
   enableMouse drag
   try action finally disableMouse drag
 
@@ -460,7 +489,8 @@ def finishSequence
 def update
     (state : LiveRegion)
     (text : String)
-    : IO LiveRegion := do
+    : IO LiveRegion
+    := do
   if ← terminalControlEnabled then
     let (output, next) := state.updateSequence text
     write output
@@ -476,7 +506,8 @@ def renderTextAtWidth
     (width : Nat)
     (text : Text)
     (choice : ColorChoice)
-    : IO String := do
+    : IO String
+    := do
   TermColor.render (Layout.wrapLines width text) choice
 
 /-- Render styled text at a supplied width, redraw a multi-line region, and flush stdout. -/
@@ -485,7 +516,8 @@ def updateTextAtWidth
     (width : Nat)
     (text : Text)
     (choice : ColorChoice := .auto)
-    : IO LiveRegion := do
+    : IO LiveRegion
+    := do
   (state.setWidth width).update (← renderTextAtWidth width text choice)
 
 /-- Render styled text at the current terminal width, redraw the region, and flush stdout.
@@ -496,7 +528,8 @@ def updateText
     (state : LiveRegion)
     (text : Text)
     (choice : ColorChoice := .auto)
-    : IO LiveRegion := do
+    : IO LiveRegion
+    := do
   let width ← match state.width with
     | some width => pure width
     | none => terminalWidth
@@ -505,7 +538,8 @@ def updateText
 /-- Leave the live region in place and move to the next line. -/
 def finish
     (state : LiveRegion)
-    : IO LiveRegion := do
+    : IO LiveRegion
+    := do
   let (output, next) := state.finishSequence
   write output
   flush
@@ -517,7 +551,8 @@ end LiveRegion
 def withHiddenCursor
     {α : Type}
     (action : IO α)
-    : IO α := do
+    : IO α
+    := do
   hideCursor
   try action finally showCursor
 
@@ -525,7 +560,8 @@ def withHiddenCursor
 def withAlternateScreen
     {α : Type}
     (action : IO α)
-    : IO α := do
+    : IO α
+    := do
   enterAlternateScreen
   try action finally exitAlternateScreen
 
