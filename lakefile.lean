@@ -7,15 +7,15 @@ package «termcolor-terminal» where
 
 require «termcolor» from git
   "https://github.com/jonaprieto/lean-termcolor.git"
-  @ "v1.1.7"
+  @ "v1.1.8"
 
 require «termcolor-layout» from git
   "https://github.com/jonaprieto/lean-termcolor-layout.git"
-  @ "v0.1.15"
+  @ "v0.1.16"
 
 require «termcolor-widgets» from git
   "https://github.com/jonaprieto/lean-termcolor-widgets.git"
-  @ "v0.1.15"
+  @ "v0.1.16"
 
 @[default_target]
 lean_lib «TermColor.Terminal» where
